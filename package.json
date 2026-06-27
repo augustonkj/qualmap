@@ -1,0 +1,19 @@
+{
+  "name": "qualmap-build",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Build do QualMap.html offline a partir do .jsx",
+  "scripts": {
+    "build": "node build_qualmap.mjs qualmap_v9.jsx QualMap.html"
+  },
+  "dependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-react": "^7.24.0",
+    "mammoth": "^1.7.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.12.0"
+  }
+}

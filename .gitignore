@@ -1,0 +1,24 @@
+# Dependências — reinstale com `npm install` (nunca vão pro GitHub)
+node_modules/
+
+# Logs e temporários
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Lixo de sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Configurações de editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Configuração local de ferramentas
+.claude/
+
+# OBS: o app publicado (index.html / QualMap.html) NÃO é ignorado de propósito —
+# é o arquivo que o GitHub Pages serve no link público.
