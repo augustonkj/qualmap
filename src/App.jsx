@@ -2,19 +2,22 @@ import React, { useState, useRef, useEffect } from "react";
 import { SUITE, useModalTrap } from "./lib.js";
 import { EditorTAR } from "./EditorTAR.jsx";
 import { AnaliseQualitativa } from "./AnaliseQualitativa.jsx";
+import { AnaliseQuantitativa } from "./AnaliseQuantitativa.jsx";
 
 /* ===== Casca: seletor de ferramentas ===== */
 const TOURQ = [
-  { t: "Bem-vindo ao QualMap", b: "O QualMap reúne duas ferramentas de análise qualitativa: o Editor Ator-Rede (diagramas) e a Análise textual (codificação de texto). Vamos ver as duas. Cada uma já abre com um exemplo pronto." },
-  { t: "Editor Ator-Rede", b: "Aqui você desenha redes da Teoria Ator-Rede: actantes (caixas) e associações (ligações). O exemplo na tela mostra os tipos de caixa, os momentos da tradução e as relações. Use a seção Inserir para criar e Organizar para arrumar.", tool: "tar" },
-  { t: "Editor — análise quantitativa", b: "Dentro do editor, a aba Análise traz tabelas, métricas de rede (grau, intermediação), gráficos e exportação (CSV e relatório em PDF). O botão ? Ajuda do editor explica tudo em detalhe.", tool: "tar" },
-  { t: "Análise textual", b: "Aqui você analisa texto: o exemplo já traz uma entrevista codificada. Selecione trechos e aplique códigos, agrupe em categorias, veja o quantitativo e escreva o metatexto. O botão ? Ajuda explica o fluxo.", tool: "qual" },
-  { t: "Pronto para usar", b: "Cada ferramenta tem o botão Exemplo (recarrega o exemplo) e o ? Ajuda (guia completo). Você pode salvar e compartilhar o trabalho. Bom uso!", tool: "qual" },
+  { t: "Bem-vindo ao QualMap", b: "O QualMap reúne quatro janelas: Codificação TAR, Diagramas, Análise Qualitativa e Análise Quantitativa. Vamos ver cada uma. As duas primeiras compartilham a mesma rede; as duas últimas, o mesmo texto." },
+  { t: "Codificação TAR", b: "Aqui você cadastra os actantes (caixas) e as associações (ligações) da Teoria Ator-Rede em tabelas. Tudo o que você cadastra aparece também na janela Diagramas.", tool: "tar-cod" },
+  { t: "Diagramas", b: "Aqui você desenha a rede: insere caixas, liga nós e organiza o layout. O exemplo mostra os tipos de caixa, os momentos da tradução e as relações.", tool: "tar-diag" },
+  { t: "Análise Qualitativa", b: "Aqui você analisa texto: o exemplo já traz uma entrevista codificada. Selecione trechos e aplique códigos, agrupe em categorias e escreva o metatexto. O botão ? Ajuda explica o fluxo.", tool: "qual" },
+  { t: "Análise Quantitativa", b: "Aqui ficam as frequências do texto (códigos, co-ocorrência) e as métricas da rede TAR (grau, intermediação).", tool: "quant" },
 ];
 export default function App() {
-  const [tool, setTool] = useState("tar");
+  const [tool, setTool] = useState("tar-cod");
   const [tourQ, setTourQ] = useState(-1);
-  const tabs = [["tar", "Editor Ator-Rede"], ["qual", "Análise textual"]];
+  const tabs = [["tar-cod", "Codificação TAR"], ["tar-diag", "Diagramas"], ["qual", "Análise Qualitativa"], ["quant", "Análise Quantitativa"]];
+  const tarActive = tool === "tar-cod" || tool === "tar-diag";
+  const tarView = tool === "tar-diag" ? "diagrama" : "analise";
   const finishTourQ = () => { setTourQ(-1); try { window.localStorage.setItem("qualmap_tour_done", "1"); } catch {} };
   useEffect(() => { try { if (!window.localStorage.getItem("qualmap_tour_done")) setTourQ(0); } catch {} }, []);
   useEffect(() => { if (tourQ < 0) return; const st = TOURQ[tourQ]; if (st && st.tool && tool !== st.tool) setTool(st.tool); }, [tourQ]);
@@ -83,8 +86,9 @@ export default function App() {
         <button onClick={() => setTourQ(0)} style={miniBtn} title="abrir o tutorial das duas ferramentas">Tutorial</button>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-        <div style={{ display: tool === "tar" ? "block" : "none", height: "100%" }}><EditorTAR active={tool === "tar"} /></div>
+        <div style={{ display: tarActive ? "block" : "none", height: "100%" }}><EditorTAR active={tarActive} viewMode={tarView} setViewMode={(v) => setTool(v === "diagrama" ? "tar-diag" : "tar-cod")} /></div>
         <div style={{ display: tool === "qual" ? "block" : "none", height: "100%" }}><AnaliseQualitativa /></div>
+        <div style={{ display: tool === "quant" ? "block" : "none", height: "100%" }}><AnaliseQuantitativa active={tool === "quant"} /></div>
       </div>
       {tourQ >= 0 && TOURQ[tourQ] && (
         <div role="dialog" aria-modal="true" aria-label="Tutorial do QualMap" style={{ position: "fixed", inset: 0, background: "rgba(20,30,38,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1200 }}>

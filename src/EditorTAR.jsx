@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { VW, VH, SNAP_T, setDims, setSizeCtx, SUITE, useModalTrap, C, NODE_TYPES, TYPE_ORDER, MOMENTS, MOMENT_ORDER, NAT_LBL, ESTAB_LBL, KIND_LBL, brandes, parseCSVfull, csvNorm, colIdx, HELP, TOUR, Hint, REGION_COLORS, wrapText, sizeOf, degreeMap, clipToRect, distToSeg, qPoint, esc, approxW, edgeGeometry, arrowHead, barrierBar, estabBadge, scriptGlyph, calcGlyph, sourceLetter, sourceMark, nodeBody, buildInner, legendMetaFor, snapNode, alignNodes, distributeNodes, depths, forceLayout, arrange, declutter, fillLayout, foldBox, unfoldBox, parseCSV, toGraphML, toGEXF, seedVazio, seedDidatico, seedRedeLivre, seedRedeUnica, seedComparativo, seedCadeia, baseState } from "./lib.js";
 
-function EditorTAR({ active = true }) {
+function EditorTAR({ active = true, viewMode: viewModeProp, setViewMode: setViewModeProp }) {
   const [state, setStateRaw] = useState(seedDidatico);
   const [past, setPast] = useState([]);
   const [future, setFuture] = useState([]);
@@ -40,7 +40,10 @@ function EditorTAR({ active = true }) {
   const [activeRelato, setActiveRelato] = useState(null);
   const [relatoName, setRelatoName] = useState("");
   const [openSec, setOpenSec] = useState({ ins: true });
-  const [viewMode, setViewMode] = useState("diagrama");
+  const [viewModeInternal, setViewModeInternal] = useState("diagrama");
+  const controlledView = viewModeProp != null;
+  const viewMode = controlledView ? viewModeProp : viewModeInternal;
+  const setViewMode = controlledView ? (setViewModeProp || (() => {})) : setViewModeInternal;
   const [impAct, setImpAct] = useState("");
   const [impAssoc, setImpAssoc] = useState("");
   const [impMsg, setImpMsg] = useState("");
@@ -670,12 +673,14 @@ table.cent{border-collapse:collapse;width:100%;font-size:12px} table.cent th{tex
   return (
     <div style={ui.page}>
       <div style={ui.bar}>
-        <strong style={{ fontSize: 15, marginRight: 4 }}>Ator-Rede</strong>
-        <div id="tour-tabs" style={{ display: "flex", border: "1px solid #cfd6dd", borderRadius: 6, overflow: "hidden", marginRight: 6 }}>
-          {[["analise", "Análise"], ["diagrama", "Diagrama"]].map(([v, l]) => (
-            <button key={v} onClick={() => setViewMode(v)} style={{ border: "none", padding: "6px 13px", cursor: "pointer", fontSize: 13, fontWeight: 600, background: viewMode === v ? "#1f7a8c" : "#fff", color: viewMode === v ? "#fff" : "#5a6b7a" }}>{l}</button>
-          ))}
-        </div>
+        <strong style={{ fontSize: 15, marginRight: 4 }}>{viewMode === "analise" ? "Codificação TAR" : "Diagrama"}</strong>
+        {!controlledView && (
+          <div id="tour-tabs" style={{ display: "flex", border: "1px solid #cfd6dd", borderRadius: 6, overflow: "hidden", marginRight: 6 }}>
+            {[["analise", "Análise"], ["diagrama", "Diagrama"]].map(([v, l]) => (
+              <button key={v} onClick={() => setViewMode(v)} style={{ border: "none", padding: "6px 13px", cursor: "pointer", fontSize: 13, fontWeight: 600, background: viewMode === v ? "#1f7a8c" : "#fff", color: viewMode === v ? "#fff" : "#5a6b7a" }}>{l}</button>
+            ))}
+          </div>
+        )}
         <button style={ui.mini} onClick={() => setShowHelp(true)} title="ajuda: o que o software faz">? Ajuda</button>
         {hasSaved && <button style={ui.btn("primary")} onClick={carregarSalvo} title="restaurar o último projeto salvo automaticamente neste navegador">Continuar de onde parei</button>}
         {hasSaved && <button style={ui.mini} onClick={descartarSalvo} title="apagar o projeto salvo automaticamente neste navegador">Descartar salvo</button>}
