@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Build do QualMap.html offline a partir do .jsx",
+  "description": "Build do QualMap.html offline a partir de src/",
   "scripts": {
-    "build": "node build_qualmap.mjs qualmap_v9.jsx QualMap.html"
+    "build": "node build_qualmap.mjs src/main.jsx QualMap.html"
   },
   "dependencies": {
     "@babel/core": "^7.24.0",
@@ -15,5 +15,9 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.12.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "jsdom": "^29.1.1"
   }
 }
