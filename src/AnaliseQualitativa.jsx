@@ -372,7 +372,7 @@ function escapeHTML(s) {
 }
 
 // gera um HTML autocontido (somente leitura) que abre em qualquer navegador
-function buildStandaloneHTML(project) {
+function buildStandaloneHTML(project, opts = {}) {
   const MET = METHODS[(project && project.method) || "livre"] || METHODS.livre;
   const codeMap = Object.fromEntries(project.codes.map((c) => [c.id, c]));
   const segs = buildSegments(project.text, project.excerpts);
@@ -395,8 +395,10 @@ function buildStandaloneHTML(project) {
   }).join("");
   const metaBlocks = project.metatexts.map((m) => `<div style="margin-bottom:18px"><h3 style="margin:0 0 6px">${escapeHTML(m.title)}</h3><p style="white-space:pre-wrap;line-height:1.7;margin:0">${escapeHTML(m.body)}</p></div>`).join("");
   const stamp = new Date().toLocaleDateString("pt-BR");
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(project.name)}</title></head>
-<body style="font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#2b3a48;background:#ffffff;margin:0">
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(project.name)}</title>
+<style>@media print{.noprint{display:none!important}}@page{margin:18mm}</style></head>
+<body style="font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#2b3a48;background:#ffffff;margin:0"${opts.print ? ' onload="setTimeout(function(){window.print()},300)"' : ""}>
+${opts.print ? `<div class="noprint" style="position:sticky;top:0;display:flex;gap:10px;align-items:center;background:#1f7a8c;color:#fff;padding:10px 16px;font-family:system-ui">Relatório pronto. <button onclick="window.print()" style="border:none;background:#fff;color:#1f7a8c;font-weight:700;border-radius:6px;padding:6px 14px;cursor:pointer">Imprimir / Salvar como PDF</button><span style="font-size:12px;opacity:.85">escolha "Salvar como PDF" no destino da impressão</span></div>` : ""}
 <div style="max-width:880px;margin:0 auto;padding:34px 24px">
 <h1 style="margin:0 0 4px">${escapeHTML(project.name)}</h1>
 <p style="font-family:system-ui;color:#888;font-size:13px;margin:0 0 24px">${escapeHTML(MET.name)} · ${project.excerpts.length} recortes · ${project.codes.length} códigos · ${project.categories.length} categorias · exportado em ${stamp}</p>
@@ -788,6 +790,11 @@ function App() {
     const base = (project.name || "projeto").replace(/\s+/g, "_");
     downloadFile(base + ".html", buildStandaloneHTML(project), "text/html;charset=utf-8");
   }
+  function exportPDF() {
+    const w = window.open("", "_blank");
+    if (!w) { try { window.alert("Permita pop-ups para gerar o relatório em PDF."); } catch {} return; }
+    w.document.open(); w.document.write(buildStandaloneHTML(project, { print: true })); w.document.close();
+  }
   function exportReport() {
     const MR = METHODS[(project && project.method) || "livre"] || METHODS.livre;
     const lines = [];
@@ -903,8 +910,7 @@ function App() {
           style={{ fontFamily: "system-ui", fontSize: 12, padding: "4px 8px", width: 130, border: `1px solid ${C.line}`, borderRadius: 4 }} />
         <label style={btnStyle(C)}>Abrir<input type="file" accept=".json,application/json" onChange={openFile} style={{ display: "none" }} /></label>
         <Btn onClick={saveFile}>Salvar</Btn>
-        <Btn onClick={exportHTML}>Compartilhar</Btn>
-        <Btn onClick={exportReport}>Relatório</Btn>
+        <Btn onClick={exportPDF}>Relatório PDF</Btn>
         <Btn onClick={newProject}>+ projeto</Btn>
         <Btn onClick={clearProject}>Limpar</Btn>
         <Btn onClick={deleteProject} danger>apagar</Btn>
