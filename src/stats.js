@@ -211,6 +211,85 @@ export function chiSquareIndependence(table) {
   const phi2 = chi / tot; const cramer = Math.sqrt(phi2 / Math.min(r - 1, c - 1));
   return { test: "Qui-quadrado de independência", chi2: chi, df, p, n: tot, minExpected: minE, cramerV: cramer, expected: exp };
 }
+export function logC(n, k) { if (k < 0 || k > n) return -Infinity; return lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1); }
+// Fisher exato 2×2 (p bicaudal por soma das tabelas tão ou menos prováveis)
+export function fisherExact(a, b, c, d) {
+  a = Math.round(a); b = Math.round(b); c = Math.round(c); d = Math.round(d);
+  if ([a, b, c, d].some((v) => v < 0)) return { error: "Frequências não podem ser negativas." };
+  const R1 = a + b, R2 = c + d, C1 = a + c, N = a + b + c + d;
+  if (!N) return { error: "Tabela vazia." };
+  const logP = (x) => logC(R1, x) + logC(R2, C1 - x) - logC(N, C1);
+  const pObs = Math.exp(logP(a)); const lo = Math.max(0, C1 - R2), hi = Math.min(R1, C1);
+  let p = 0; for (let x = lo; x <= hi; x++) { const px = Math.exp(logP(x)); if (px <= pObs * (1 + 1e-7)) p += px; }
+  return { test: "Probabilidade exata de Fisher (2×2)", p: Math.min(1, p), oddsRatio: b * c === 0 ? Infinity : (a * d) / (b * c), table: [[a, b], [c, d]] };
+}
+// teste da Mediana (k grupos) — qui-quadrado de acima/≤ mediana global
+export function medianTest(groups, names) {
+  const G = groups.map(toNums).filter((g) => g.length); const k = G.length;
+  if (k < 2) return { error: "Informe ao menos 2 grupos." };
+  const all = G.flat().sort((a, b) => a - b); const md = quantile(all, 0.5);
+  const tbl = G.map((g) => { const above = g.filter((v) => v > md).length; return [above, g.length - above]; });
+  const cs = chiSquareIndependence(tbl);
+  if (cs.error) return cs;
+  return { test: "Teste da Mediana", median: md, k, chi2: cs.chi2, df: cs.df, p: cs.p, minExpected: cs.minExpected, groups: G.map((g, i) => ({ name: (names && names[i]) || `G${i + 1}`, n: g.length, above: g.filter((v) => v > md).length })) };
+}
+// Kolmogorov-Smirnov, duas amostras
+export function ks2(rawA, rawB) {
+  const x = toNums(rawA).sort((a, b) => a - b), y = toNums(rawB).sort((a, b) => a - b);
+  const n1 = x.length, n2 = y.length; if (n1 < 2 || n2 < 2) return { error: "Cada amostra precisa de ≥2 observações." };
+  const all = [...new Set([...x, ...y])].sort((a, b) => a - b); let D = 0;
+  for (const v of all) { const f1 = x.filter((t) => t <= v).length / n1, f2 = y.filter((t) => t <= v).length / n2; D = Math.max(D, Math.abs(f1 - f2)); }
+  const ne = n1 * n2 / (n1 + n2); const lam = (Math.sqrt(ne) + 0.12 + 0.11 / Math.sqrt(ne)) * D;
+  let p = 0; for (let j = 1; j <= 100; j++) p += 2 * Math.pow(-1, j - 1) * Math.exp(-2 * j * j * lam * lam);
+  return { test: "Kolmogorov-Smirnov (2 amostras)", n1, n2, D, p: Math.min(1, Math.max(0, p)) };
+}
+// Wald-Wolfowitz (runs) para duas amostras independentes
+export function waldWolfowitz2(rawA, rawB) {
+  const x = toNums(rawA), y = toNums(rawB); const n1 = x.length, n2 = y.length;
+  if (n1 < 2 || n2 < 2) return { error: "Cada amostra precisa de ≥2 observações." };
+  const comb = [...x.map((v) => [v, 0]), ...y.map((v) => [v, 1])].sort((a, b) => a[0] - b[0]);
+  let runs = 1; for (let i = 1; i < comb.length; i++) if (comb[i][1] !== comb[i - 1][1]) runs++;
+  const N = n1 + n2; const mu = 2 * n1 * n2 / N + 1; const sigma = Math.sqrt(2 * n1 * n2 * (2 * n1 * n2 - N) / (N * N * (N - 1)));
+  const z = (runs - mu) / sigma; const p = 2 * (1 - normalCDF(Math.abs(z)));
+  return { test: "Wald-Wolfowitz (2 amostras independentes)", n1, n2, runs, expected: mu, z, p };
+}
+// ANOVA fatorial (dois fatores, com interação). Exata para delineamentos balanceados.
+export function twoWayAnova(values, facA, facB, nameA = "Fator A", nameB = "Fator B") {
+  const data = [];
+  for (let i = 0; i < values.length; i++) { const v = parseFloat(String(values[i]).replace(",", ".")); const a = String(facA[i]).trim(), b = String(facB[i]).trim(); if (Number.isFinite(v) && a !== "" && b !== "") data.push([v, a, b]); }
+  const N = data.length; const lvA = [...new Set(data.map((d) => d[1]))], lvB = [...new Set(data.map((d) => d[2]))];
+  const a = lvA.length, b = lvB.length; if (a < 2 || b < 2 || N < a * b + 1) return { error: "Cada fator precisa de ≥2 níveis e dados suficientes." };
+  const grand = mean(data.map((d) => d[0])); const sst = sum(data.map((d) => (d[0] - grand) ** 2));
+  let ssa = 0; lvA.forEach((l) => { const g = data.filter((d) => d[1] === l).map((d) => d[0]); ssa += g.length * (mean(g) - grand) ** 2; });
+  let ssb = 0; lvB.forEach((l) => { const g = data.filter((d) => d[2] === l).map((d) => d[0]); ssb += g.length * (mean(g) - grand) ** 2; });
+  let ssCells = 0; const cellN = []; lvA.forEach((la) => lvB.forEach((lb) => { const g = data.filter((d) => d[1] === la && d[2] === lb).map((d) => d[0]); if (g.length) { ssCells += g.length * (mean(g) - grand) ** 2; cellN.push(g.length); } }));
+  const ssab = ssCells - ssa - ssb; const sse = sst - ssCells;
+  const dfa = a - 1, dfb = b - 1, dfab = (a - 1) * (b - 1), dfe = N - a * b;
+  if (dfe <= 0) return { error: "Sem graus de liberdade para o erro (precisa de repetições nas células)." };
+  const mse = sse / dfe; const mk = (ss, df) => ({ ss, df, ms: ss / df, F: (ss / df) / mse, p: fSF((ss / df) / mse, df, dfe) });
+  const balanced = cellN.length === a * b && cellN.every((n) => n === cellN[0]);
+  return { test: "ANOVA fatorial (dois fatores)", nameA, nameB, a, b, N, balanced, A: mk(ssa, dfa), B: mk(ssb, dfb), AB: mk(ssab, dfab), resid: { ss: sse, df: dfe, ms: mse } };
+}
+// Teste de Moses (reações extremas). Controle vs experimental; aparar h extremos
+// de cada ponta do controle. Distribuição EXATA do span (combinatória).
+export function moses(control, experimental, h = 0) {
+  const cx = toNums(control), ex = toNums(experimental); const m = cx.length, n = ex.length; const N = m + n;
+  if (m < 2 || n < 1) return { error: "Controle precisa de ≥2 e experimental de ≥1 observações." };
+  h = Math.max(0, Math.floor(h)); const k = m - 2 * h;
+  if (k < 2) return { error: "h grande demais: é preciso (m − 2h) ≥ 2." };
+  const comb = [...cx.map((v) => [v, 0]), ...ex.map((v) => [v, 1])].sort((a, b) => a[0] - b[0]);
+  const ctrlPos = []; comb.forEach((d, i) => { if (d[1] === 0) ctrlPos.push(i + 1); });
+  ctrlPos.sort((a, b) => a - b);
+  const sObs = ctrlPos[m - h - 1] - ctrlPos[h] + 1;
+  const denom = logC(N, m); let cdf = 0, total = 0;
+  for (let a = 1; a <= N; a++) {
+    for (let b = a + (k - 1); b <= N; b++) {
+      const lp = logC(a - 1, h) + logC(b - a - 1, k - 2) + logC(N - b, h) - denom;
+      if (lp === -Infinity) continue; const pr = Math.exp(lp); total += pr; if (b - a + 1 <= sObs) cdf += pr;
+    }
+  }
+  return { test: "Teste de Moses (reações extremas)", m, n, h, span: sObs, kMid: k, p: Math.min(1, cdf / (total || 1)), total };
+}
 export function runsTest(raw) {
   const x = toNums(raw); const n = x.length; if (n < 3) return { error: "Mínimo de 3 observações." };
   const med = quantile([...x].sort((a, b) => a - b), 0.5);

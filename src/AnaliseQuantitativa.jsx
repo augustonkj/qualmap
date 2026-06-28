@@ -21,7 +21,7 @@ const TESTS = [
     { key: "t2", label: "Teste t — duas amostras independentes", impl: true, kind: "num+group" },
     { key: "tp", label: "Teste t — amostras pareadas", impl: true, kind: "2num" },
     { key: "anova", label: "ANOVA de um fator (teste F)", impl: true, kind: "num+group" },
-    { key: "anova2", label: "ANOVA fatorial (dois fatores, interação)", impl: false },
+    { key: "anova2", label: "ANOVA fatorial (dois fatores, interação)", impl: true, kind: "num+2group" },
   ] },
   { group: "Correlação e fidedignidade", items: [
     { key: "pearson", label: "Correlação de Pearson", impl: true, kind: "2num" },
@@ -33,11 +33,11 @@ const TESTS = [
     { key: "wilcoxon", label: "Wilcoxon (2 amostras relacionadas)", impl: true, kind: "2num" },
     { key: "chi2", label: "Qui-quadrado (independência)", impl: true, kind: "2cat" },
     { key: "runs", label: "Teste de aleatoriedade (runs / Wald-Wolfowitz)", impl: true, kind: "1num" },
-    { key: "fisher", label: "Probabilidade exata de Fisher (2×2)", impl: false },
-    { key: "median", label: "Teste da Mediana", impl: false },
-    { key: "ks2", label: "Kolmogorov-Smirnov (2 amostras)", impl: false },
-    { key: "ww2", label: "Wald-Wolfowitz (2 amostras independentes)", impl: false },
-    { key: "moses", label: "Moses (reações extremas)", impl: false },
+    { key: "fisher", label: "Probabilidade exata de Fisher (2×2)", impl: true, kind: "2cat" },
+    { key: "median", label: "Teste da Mediana", impl: true, kind: "num+group" },
+    { key: "ks2", label: "Kolmogorov-Smirnov (2 amostras)", impl: true, kind: "num+group" },
+    { key: "ww2", label: "Wald-Wolfowitz (2 amostras independentes)", impl: true, kind: "num+group" },
+    { key: "moses", label: "Moses (reações extremas)", impl: true, kind: "moses" },
   ] },
 ];
 const ALL = TESTS.flatMap((g) => g.items);
@@ -129,6 +129,7 @@ function AnaliseQuantitativa({ active = true }) {
   const [vars, setVars] = useState({});      // seleções: {num, num2, group, cat1, cat2, items:[]}
   const [mu0, setMu0] = useState("0");
   const [conf, setConf] = useState("0.95");
+  const [hMoses, setHMoses] = useState("0");
   const [result, setResult] = useState(null);
 
   // restaurar
@@ -194,15 +195,33 @@ function AnaliseQuantitativa({ active = true }) {
         res = ST.cronbach((vars.items || []).map(col));
       } else if (testKey === "runs") {
         res = ST.runsTest(col(vars.num));
-      } else if (testKey === "t2" || testKey === "anova" || testKey === "mw") {
+      } else if (testKey === "t2" || testKey === "anova" || testKey === "mw" || testKey === "median" || testKey === "ks2" || testKey === "ww2") {
         const { order, map } = groupsOf(vars.num, vars.group);
         if (order.length < 2) throw new Error("A variável de grupo precisa ter ao menos 2 categorias.");
         if (testKey === "anova") res = ST.oneWayAnova(order.map((k) => map[k]), order);
-        else { if (order.length > 2) throw new Error("Selecione um fator com exatamente 2 grupos (há " + order.length + ")."); res = (testKey === "t2") ? { ...ST.twoSampleT(map[order[0]], map[order[1]], { welch: true, conf: c }), g1: order[0], g2: order[1] } : { ...ST.mannWhitney(map[order[0]], map[order[1]]), g1: order[0], g2: order[1] }; }
-      } else if (testKey === "chi2") {
+        else if (testKey === "median") res = ST.medianTest(order.map((k) => map[k]), order);
+        else {
+          if (order.length > 2) throw new Error("Selecione um fator com exatamente 2 grupos (há " + order.length + ").");
+          const A = map[order[0]], B = map[order[1]];
+          if (testKey === "t2") res = { ...ST.twoSampleT(A, B, { welch: true, conf: c }), g1: order[0], g2: order[1] };
+          else if (testKey === "mw") res = { ...ST.mannWhitney(A, B), g1: order[0], g2: order[1] };
+          else if (testKey === "ks2") res = { ...ST.ks2(A, B), g1: order[0], g2: order[1] };
+          else res = { ...ST.waldWolfowitz2(A, B), g1: order[0], g2: order[1] };
+        }
+      } else if (testKey === "moses") {
+        const { order, map } = groupsOf(vars.num, vars.group);
+        if (order.length !== 2) throw new Error("Moses exige exatamente 2 grupos (controle e experimental).");
+        res = { ...ST.moses(map[order[0]], map[order[1]], parseInt(hMoses, 10) || 0), control: order[0], experimental: order[1] };
+      } else if (testKey === "anova2") {
+        if (!vars.num || !vars.groupA || !vars.groupB) throw new Error("Escolha a variável numérica e os dois fatores.");
+        res = ST.twoWayAnova(col(vars.num), col(vars.groupA), col(vars.groupB), vars.groupA, vars.groupB);
+      } else if (testKey === "chi2" || testKey === "fisher") {
         const { r1, r2, tbl } = contingency(vars.cat1, vars.cat2);
         if (r1.length < 2 || r2.length < 2) throw new Error("Cada variável categórica precisa de ao menos 2 categorias.");
-        res = { ...ST.chiSquareIndependence(tbl), r1, r2, tbl };
+        if (testKey === "fisher") {
+          if (r1.length !== 2 || r2.length !== 2) throw new Error("Fisher exige tabela 2×2 (cada variável com exatamente 2 categorias).");
+          res = { ...ST.fisherExact(tbl[0][0], tbl[0][1], tbl[1][0], tbl[1][1]), r1, r2, tbl };
+        } else res = { ...ST.chiSquareIndependence(tbl), r1, r2, tbl };
       }
       if (res && res.error) { setErr(res.error); setResult(null); } else { setResult({ key: testKey, res }); }
     } catch (e) { setErr(e.message || "Erro no cálculo."); setResult(null); }
@@ -219,6 +238,8 @@ function AnaliseQuantitativa({ active = true }) {
       case "num+mu": return <><Picker label="Variável numérica" value={vars.num} set={(v) => setVars({ num: v })} opts={numCols} /><div><label style={T.lbl}>Valor de referência (μ₀)</label><input style={{ ...T.sel, maxWidth: 120 }} value={mu0} onChange={(e) => setMu0(e.target.value)} /></div></>;
       case "2num": return <><Picker label="Variável 1" value={vars.num} set={(v) => setVars((s) => ({ ...s, num: v }))} opts={numCols} /><Picker label="Variável 2" value={vars.num2} set={(v) => setVars((s) => ({ ...s, num2: v }))} opts={numCols} /></>;
       case "num+group": return <><Picker label="Variável numérica" value={vars.num} set={(v) => setVars((s) => ({ ...s, num: v }))} opts={numCols} /><Picker label="Variável de grupo (fator)" value={vars.group} set={(v) => setVars((s) => ({ ...s, group: v }))} opts={allCols} /></>;
+      case "moses": return <><Picker label="Variável numérica" value={vars.num} set={(v) => setVars((s) => ({ ...s, num: v }))} opts={numCols} /><Picker label="Grupo (1º = controle, 2º = experimental)" value={vars.group} set={(v) => setVars((s) => ({ ...s, group: v }))} opts={allCols} /><div><label style={T.lbl}>h (aparar extremos do controle)</label><input style={{ ...T.sel, maxWidth: 100 }} value={hMoses} onChange={(e) => setHMoses(e.target.value)} /></div></>;
+      case "num+2group": return <><Picker label="Variável numérica" value={vars.num} set={(v) => setVars((s) => ({ ...s, num: v }))} opts={numCols} /><Picker label="Fator A" value={vars.groupA} set={(v) => setVars((s) => ({ ...s, groupA: v }))} opts={allCols} /><Picker label="Fator B" value={vars.groupB} set={(v) => setVars((s) => ({ ...s, groupB: v }))} opts={allCols} /></>;
       case "2cat": return <><Picker label="Variável categórica 1 (linhas)" value={vars.cat1} set={(v) => setVars((s) => ({ ...s, cat1: v }))} opts={allCols} /><Picker label="Variável categórica 2 (colunas)" value={vars.cat2} set={(v) => setVars((s) => ({ ...s, cat2: v }))} opts={allCols} /></>;
       case "1num": return <Picker label="Variável numérica (sequência observada)" value={vars.num} set={(v) => setVars({ num: v })} opts={numCols} />;
       default: return null;
@@ -320,6 +341,12 @@ function Result({ data }) {
       {key === "mw" && <><Row k={`grupos`} v={`${res.g1} (n=${res.n1}) vs ${res.g2} (n=${res.n2})`} /><Row k="U" v={fmt(res.U, 1)} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p (aprox. normal)" v={fmtP(res.p)} /><Sig p={res.p} /></>}
       {key === "runs" && <><Row k="Nº de sequências (runs)" v={res.runs} /><Row k="Esperado" v={fmt(res.expected, 2)} /><Row k="Acima / abaixo da mediana" v={`${res.n1} / ${res.n2}`} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p" v={fmtP(res.p)} /><div style={{ marginTop: 10, fontSize: 12.5, padding: "8px 10px", borderRadius: 6, background: "#f2f5f7", border: "1px solid #e3e9ee" }}>{res.p < 0.05 ? "Sequência provavelmente não aleatória (p < 0,05)." : "Compatível com aleatoriedade (p ≥ 0,05)."}</div></>}
       {key === "chi2" && <><Row k="χ²" v={fmt(res.chi2, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><Row k="N" v={res.n} /><Row k="V de Cramér" v={fmt(res.cramerV, 3)} /><Row k="Menor freq. esperada" v={fmt(res.minExpected, 2)} />{res.minExpected < 5 && <div style={{ fontSize: 11.5, color: "#b06a1f", marginTop: 4 }}>Atenção: frequência esperada &lt; 5 — o χ² pode ser pouco confiável (considere Fisher).</div>}<div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr><th style={T.th}></th>{res.r2.map((c) => <th key={c} style={T.th}>{c}</th>)}</tr></thead><tbody>{res.tbl.map((row, i) => <tr key={i}><td style={T.td}><strong>{res.r1[i]}</strong></td>{row.map((v, j) => <td key={j} style={T.td}>{v}</td>)}</tr>)}</tbody></table></div><Sig p={res.p} /></>}
+      {key === "anova2" && <><div style={{ fontSize: 12, color: "#6b7c8a", marginBottom: 6 }}>{res.balanced ? "Delineamento balanceado." : "Atenção: delineamento NÃO balanceado — as somas de quadrados são aproximadas."}</div><div style={{ overflowX: "auto" }}><table style={{ borderCollapse: "collapse", width: "100%" }}><thead><tr>{["Fonte", "SQ", "gl", "QM", "F", "p"].map((h) => <th key={h} style={T.th}>{h}</th>)}</tr></thead><tbody>{[["Fator A (" + res.nameA + ")", res.A], ["Fator B (" + res.nameB + ")", res.B], ["Interação A×B", res.AB]].map(([nm, r]) => <tr key={nm}><td style={T.td}>{nm}</td><td style={T.td}>{fmt(r.ss, 2)}</td><td style={T.td}>{r.df}</td><td style={T.td}>{fmt(r.ms, 2)}</td><td style={T.td}>{fmt(r.F, 3)}</td><td style={T.td}>{fmtP(r.p)}</td></tr>)}<tr><td style={T.td}>Resíduo</td><td style={T.td}>{fmt(res.resid.ss, 2)}</td><td style={T.td}>{res.resid.df}</td><td style={T.td}>{fmt(res.resid.ms, 2)}</td><td style={T.td}>—</td><td style={T.td}>—</td></tr></tbody></table></div><div style={{ fontSize: 12, marginTop: 8, color: "#34495e" }}>Interação {res.AB.p < 0.05 ? "significativa" : "não significativa"} (p {fmtP(res.AB.p)}).</div></>}
+      {key === "fisher" && <><Row k="Razão de chances (OR)" v={Number.isFinite(res.oddsRatio) ? fmt(res.oddsRatio, 3) : "∞"} /><Row k="p exato (bicaudal)" v={fmtP(res.p)} /><div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr><th style={T.th}></th>{res.r2.map((c) => <th key={c} style={T.th}>{c}</th>)}</tr></thead><tbody>{res.tbl.map((row, i) => <tr key={i}><td style={T.td}><strong>{res.r1[i]}</strong></td>{row.map((v, j) => <td key={j} style={T.td}>{v}</td>)}</tr>)}</tbody></table></div><Sig p={res.p} /></>}
+      {key === "median" && <><Row k="Mediana global" v={fmt(res.median, 3)} /><Row k="χ²" v={fmt(res.chi2, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr>{["Grupo", "n", "Acima da mediana"].map((h) => <th key={h} style={T.th}>{h}</th>)}</tr></thead><tbody>{res.groups.map((g) => <tr key={g.name}><td style={T.td}>{g.name}</td><td style={T.td}>{g.n}</td><td style={T.td}>{g.above}</td></tr>)}</tbody></table></div><Sig p={res.p} /></>}
+      {key === "ks2" && <><Row k={`grupos`} v={`${res.g1} (n=${res.n1}) vs ${res.g2} (n=${res.n2})`} /><Row k="D (máx. diferença das ECDF)" v={fmt(res.D, 4)} /><Row k="p (aprox.)" v={fmtP(res.p)} /><Sig p={res.p} /></>}
+      {key === "ww2" && <><Row k={`grupos`} v={`${res.g1} (n=${res.n1}) vs ${res.g2} (n=${res.n2})`} /><Row k="Nº de sequências (runs)" v={res.runs} /><Row k="Esperado" v={fmt(res.expected, 2)} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p" v={fmtP(res.p)} /><Sig p={res.p} /></>}
+      {key === "moses" && <><Row k="Controle / experimental" v={`${res.control} (n=${res.m}) / ${res.experimental} (n=${res.n})`} /><Row k="h (aparado)" v={res.h} /><Row k="Span do controle" v={res.span} /><Row k="p (unicaudal)" v={fmtP(res.p)} /><div style={{ marginTop: 10, fontSize: 12.5, padding: "8px 10px", borderRadius: 6, background: res.p < 0.05 ? "#e7f3ec" : "#f2f5f7", border: "1px solid " + (res.p < 0.05 ? "#bfe0cc" : "#e3e9ee") }}>{res.p < 0.05 ? "O grupo experimental apresenta reações mais extremas que o controle (p < 0,05)." : "Sem evidência de reações extremas (p ≥ 0,05)."}</div></>}
       {key === "cronbach" && <><Row k="α de Cronbach" v={fmt(res.alpha, 4)} /><Row k="Itens (k)" v={res.k} /><Row k="Casos (n)" v={res.n} /><div style={{ marginTop: 10, fontSize: 12.5, padding: "8px 10px", borderRadius: 6, background: "#f2f5f7", border: "1px solid #e3e9ee" }}>{res.alpha >= 0.9 ? "Excelente" : res.alpha >= 0.8 ? "Boa" : res.alpha >= 0.7 ? "Aceitável" : res.alpha >= 0.6 ? "Questionável" : "Baixa"} consistência interna.</div></>}
     </div>
   );
