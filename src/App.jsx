@@ -74,7 +74,7 @@ export default function App() {
           </svg>
           <div style={{ lineHeight: 1.05 }}>
             <div style={{ fontWeight: 800, color: "#1f7a8c", fontSize: 17, letterSpacing: 0.2 }}>QualMap</div>
-            <div style={{ fontSize: 10.5, color: "#7a8b99" }}>análise qualitativa e diagramas</div>
+            <div style={{ fontSize: 10.5, color: "#7a8b99" }}>análise quanti-quali e diagramas</div>
           </div>
         </div>
         <div style={{ display: "flex", border: "1px solid #cfd6dd", borderRadius: 6, overflow: "hidden", marginLeft: 6 }}>

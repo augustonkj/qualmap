@@ -1079,7 +1079,7 @@ function CategoriasView({ project, codeFreq, C, addCategory, updateCategory, rem
           </div>
         ))}
       </div>
-      {project.categories.length === 0 && <div style={{ fontFamily: "system-ui", fontSize: 13, color: C.sub, marginTop: 20 }}>Nenhuma categoria. Crie uma e clique nos códigos para agregá-los, ou peça uma sugestão à IA.</div>}
+      {project.categories.length === 0 && <div style={{ fontFamily: "system-ui", fontSize: 13, color: C.sub, marginTop: 20 }}>Nenhuma categoria. Crie uma e clique nos códigos para agregá-los.</div>}
     </div>
   );
 }
