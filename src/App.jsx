@@ -155,10 +155,10 @@ export default function App() {
 
             <h3 style={{ margin: "0 0 6px", fontSize: 13, color: "#1f7a8c", textTransform: "uppercase", letterSpacing: ".5px" }}>Sobre o software</h3>
             <p style={{ margin: "0 0 10px", fontSize: 13.5, color: "#46555f", lineHeight: 1.6 }}>
-              O QualMap é um ambiente para pesquisa qualitativa e quantitativa que reúne quatro janelas integradas. A <strong>Teoria Ator-Rede</strong> e o <strong>Diagrama</strong> permitem cadastrar e desenhar redes inspiradas na Teoria Ator-Rede (Latour, Callon, Law) — momentos da tradução, pontos de passagem obrigatória, caixas-pretas, porta-vozes, mediadores e intermediários, além de métricas de rede como grau e intermediação — e também um mapa conceitual livre.
+              O QualMap reúne quatro janelas para pesquisa qualitativa e quantitativa: Teoria Ator-Rede e Diagrama (redes da Teoria Ator-Rede e mapa conceitual), Análise Qualitativa (codificação de texto em códigos e categorias) e Análise Quantitativa (testes estatísticos).
             </p>
             <p style={{ margin: "0 0 10px", fontSize: 13.5, color: "#46555f", lineHeight: 1.6 }}>
-              A <strong>Análise Qualitativa</strong> apoia a codificação de entrevistas e documentos: seleção de trechos, aplicação e agrupamento de códigos em categorias e redação do metatexto. A <strong>Análise Quantitativa</strong> oferece testes estatísticos (descritivas, t, ANOVA, correlação, qui-quadrado e não-paramétricos). Tudo funciona totalmente offline — no navegador ou como aplicativo de desktop — e o trabalho pode ser salvo e compartilhado num único arquivo.
+              Funciona offline, no navegador ou como aplicativo de desktop, e o trabalho é salvo num único arquivo.
             </p>
 
             <h3 style={{ margin: "18px 0 8px", fontSize: 13, color: "#1f7a8c", textTransform: "uppercase", letterSpacing: ".5px" }}>Desenvolvedores</h3>
