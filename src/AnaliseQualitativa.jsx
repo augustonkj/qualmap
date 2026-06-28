@@ -369,6 +369,7 @@ const METHODS = {
     desc: "Fluxo geral de análise qualitativa, sem amarrar a uma abordagem específica: codifique trechos, agrupe em categorias e escreva a interpretação.",
     steps: ["Codificar trechos do texto", "Agrupar os códigos em categorias", "Quantitativo (opcional)", "Escrever a interpretação"],
     tabs: { codificacao: "Codificação", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Metatexto" },
+    metaHint: "Escreva aqui a interpretação, apoiada nos recortes.",
   },
   conteudo: {
     name: "Análise de Conteúdo (Bardin)",
@@ -376,6 +377,7 @@ const METHODS = {
     steps: ["Pré-análise: ler e organizar o material", "Exploração: recortar unidades e marcar com códigos", "Categorização: agrupar códigos em categorias", "Tratamento e inferência: quantitativo + interpretação"],
     tabs: { codificacao: "Codificação", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Inferência" },
     ref: "Bardin, L. Análise de conteúdo.",
+    metaHint: "Escreva a inferência: o que os dados, à luz da teoria e do contexto, permitem concluir.",
   },
   atd: {
     name: "Análise Textual Discursiva (Moraes & Galiazzi)",
@@ -383,6 +385,7 @@ const METHODS = {
     steps: ["Unitarização: fragmentar o texto em unidades de significado", "Categorização: agrupar as unidades em categorias emergentes", "Metatexto: comunicar o novo compreendido", "Confiabilidade entre analistas (opcional)"],
     tabs: { codificacao: "Unitarização", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Metatexto" },
     ref: "Moraes, R.; Galiazzi, M. C. Análise textual discursiva.",
+    metaHint: "Escreva o metatexto: comunique o novo compreendido a partir das categorias emergentes.",
   },
   fenomenologia: {
     name: "Fenomenologia",
@@ -390,9 +393,34 @@ const METHODS = {
     steps: ["Leitura dos relatos em atitude fenomenológica", "Unidades de significado: destacar trechos significativos", "Análise ideográfica: agrupar em categorias abertas", "Análise nomotética e síntese: convergências → estrutura"],
     tabs: { codificacao: "Unidades de significado", categorias: "Categorias abertas", quantitativo: "Convergências", confiabilidade: "Confiabilidade", metatexto: "Síntese" },
     ref: "Ex.: Giorgi; Bicudo (fenomenologia na pesquisa qualitativa).",
+    metaHint: "Escreva a síntese: a estrutura do fenômeno tal como se mostrou nas convergências entre os sujeitos.",
+  },
+  discurso: {
+    name: "Análise de Discurso",
+    desc: "Analisa não o conteúdo em si, mas como os sentidos são produzidos: recortes discursivos, formações discursivas e as condições de produção (histórico-ideológicas) do discurso.",
+    steps: ["Constituir o corpus discursivo", "Recortes discursivos: destacar sequências significativas", "Formações discursivas: agrupar por regularidades de sentido", "Interpretação: sentidos, posições e condições de produção"],
+    tabs: { codificacao: "Recortes discursivos", categorias: "Formações discursivas", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Interpretação" },
+    ref: "Ex.: Pêcheux; Orlandi (análise de discurso).",
+    metaHint: "Interprete os sentidos e as formações discursivas, considerando as condições de produção e as posições do sujeito.",
+  },
+  grounded: {
+    name: "Teoria Fundamentada (Grounded Theory)",
+    desc: "Constrói teoria a partir dos dados por níveis de codificação: aberta (rotular incidentes), axial (relacionar categorias) e seletiva (integrar em torno de uma categoria central).",
+    steps: ["Codificação aberta: rotular incidentes nos dados", "Codificação axial: relacionar e agrupar categorias", "Codificação seletiva: integrar em torno da categoria central", "Teoria: articular as relações entre categorias"],
+    tabs: { codificacao: "Codificação aberta", categorias: "Codificação axial", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Teoria (cod. seletiva)" },
+    ref: "Ex.: Glaser & Strauss; Charmaz (grounded theory).",
+    metaHint: "Articule a teoria emergente: a categoria central e suas relações com as demais categorias.",
+  },
+  narrativas: {
+    name: "Análise de Narrativas",
+    desc: "Toma as narrativas como unidade de análise: identifica unidades narrativas, organiza enredos e temas e interpreta os sentidos e recorrências das histórias contadas.",
+    steps: ["Ler as narrativas como totalidades", "Unidades narrativas: destacar episódios/sequências", "Temas e enredos: agrupar por recorrências", "Interpretação: sentidos e recorrências das histórias"],
+    tabs: { codificacao: "Unidades narrativas", categorias: "Temas / enredos", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Interpretação" },
+    ref: "Ex.: Clandinin & Connelly; Riessman (pesquisa narrativa).",
+    metaHint: "Interprete as narrativas: enredos, sentidos atribuídos e recorrências entre as histórias.",
   },
 };
-const METHOD_ORDER = ["livre", "conteudo", "atd", "fenomenologia"];
+const METHOD_ORDER = ["livre", "conteudo", "atd", "fenomenologia", "discurso", "grounded", "narrativas"];
 
 function App() {
   const [project, setProject] = useState(null);
@@ -872,7 +900,7 @@ function App() {
           <ConfiabilidadeView {...{ projectA: project, index, cmpB, onPickB, onFileB, onExample: loadReliabilityExample, C }} />
         )}
         {tab === "metatexto" && (
-          <MetatextoView {...{ project, C, addMetatext, updateMetatext, removeMetatext }} />
+          <MetatextoView {...{ project, C, addMetatext, updateMetatext, removeMetatext, metaLabel: MET.tabs.metatexto, metaHint: MET.metaHint }} />
         )}
       </div>
     </div>
@@ -1368,14 +1396,15 @@ function ConfiabilidadeView({ projectA, index, cmpB, onPickB, onFileB, onExample
 }
 
 // ============ METATEXTO ============
-function MetatextoView({ project, C, addMetatext, updateMetatext, removeMetatext }) {
+function MetatextoView({ project, C, addMetatext, updateMetatext, removeMetatext, metaLabel = "Metatexto", metaHint = "Escreva aqui a interpretação, apoiada nos recortes." }) {
+  const lower = metaLabel.toLowerCase();
   return (
     <div style={{ flex: 1, overflow: "auto", padding: 18 }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center" }}>
-        <button onClick={() => addMetatext(null)} style={{ ...btnStyle(C), background: C.accent, color: "#fff", border: "none" }}>+ novo metatexto</button>
+        <button onClick={() => addMetatext(null)} style={{ ...btnStyle(C), background: C.accent, color: "#fff", border: "none" }}>+ novo texto</button>
         <span style={{ fontFamily: "system-ui", fontSize: 11, color: C.sub }}>vincule a uma categoria para gerar a partir dos excertos</span>
       </div>
-      {project.metatexts.length === 0 && <div style={{ fontFamily: "system-ui", fontSize: 13, color: C.sub }}>Nenhum metatexto. É aqui que se escreve a interpretação (inferência em Bardin; comunicação/metatexto em Moraes e Galiazzi).</div>}
+      {project.metatexts.length === 0 && <div style={{ fontFamily: "system-ui", fontSize: 13, color: C.sub }}>Nenhum texto ainda. É aqui que se escreve a etapa de <b>{lower}</b>: {metaHint}</div>}
       {project.metatexts.map((m) => (
         <div key={m.id} style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 6, padding: 16, marginBottom: 16, maxWidth: 820 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
@@ -1388,7 +1417,7 @@ function MetatextoView({ project, C, addMetatext, updateMetatext, removeMetatext
             </select>
             <button onClick={() => removeMetatext(m.id)} style={{ border: "none", background: "transparent", color: C.sub, cursor: "pointer", fontSize: 16 }}>×</button>
           </div>
-          <textarea value={m.body} onChange={(e) => updateMetatext(m.id, { body: e.target.value })} placeholder="Escreva aqui o metatexto descritivo-interpretativo, com a interpretação apoiada nos recortes…"
+          <textarea value={m.body} onChange={(e) => updateMetatext(m.id, { body: e.target.value })} placeholder={metaHint}
             style={{ width: "100%", fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontSize: 15, lineHeight: 1.7, padding: 12, border: `1px solid ${C.line}`, borderRadius: 4, resize: "vertical", minHeight: 160, boxSizing: "border-box" }} />
         </div>
       ))}
