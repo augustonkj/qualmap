@@ -369,6 +369,8 @@ const METHODS = {
     desc: "Fluxo geral de análise qualitativa, sem amarrar a uma abordagem específica: codifique trechos, agrupe em categorias e escreva a interpretação.",
     steps: ["Codificar trechos do texto", "Agrupar os códigos em categorias", "Quantitativo (opcional)", "Escrever a interpretação"],
     tabs: { codificacao: "Codificação", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Metatexto" },
+    show: ["codificacao", "categorias", "quantitativo", "confiabilidade", "metatexto"],
+    catHint: "Crie categorias e associe códigos a elas. Emergentes nascem dos dados; a priori vêm da teoria.",
     metaHint: "Escreva aqui a interpretação, apoiada nos recortes.",
   },
   conteudo: {
@@ -376,15 +378,19 @@ const METHODS = {
     desc: "Análise sistemática das mensagens em três polos: pré-análise, exploração do material e tratamento dos resultados (inferência). As categorias podem ser a priori (vindas da teoria) ou emergentes (dos dados).",
     steps: ["Pré-análise: ler e organizar o material", "Exploração: recortar unidades e marcar com códigos", "Categorização: agrupar códigos em categorias", "Tratamento e inferência: quantitativo + interpretação"],
     tabs: { codificacao: "Codificação", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Inferência" },
+    show: ["codificacao", "categorias", "quantitativo", "confiabilidade", "metatexto"],
     ref: "Bardin, L. Análise de conteúdo.",
+    catHint: "Categorias a priori (da teoria) ou emergentes (dos dados); a frequência por categoria alimenta a inferência.",
     metaHint: "Escreva a inferência: o que os dados, à luz da teoria e do contexto, permitem concluir.",
   },
   atd: {
     name: "Análise Textual Discursiva (Moraes & Galiazzi)",
     desc: "Processo auto-organizado em três momentos: unitarização (desmontar o texto em unidades de significado), categorização (agrupamento emergente) e captação do novo emergente (o metatexto).",
-    steps: ["Unitarização: fragmentar o texto em unidades de significado", "Categorização: agrupar as unidades em categorias emergentes", "Metatexto: comunicar o novo compreendido", "Confiabilidade entre analistas (opcional)"],
+    steps: ["Unitarização: fragmentar o texto em unidades de significado", "Categorização: agrupar as unidades em categorias emergentes", "Metatexto: comunicar o novo compreendido"],
     tabs: { codificacao: "Unitarização", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Metatexto" },
+    show: ["codificacao", "categorias", "quantitativo", "metatexto"],
     ref: "Moraes, R.; Galiazzi, M. C. Análise textual discursiva.",
+    catHint: "Categorias emergentes: agrupe as unidades de significado por semelhança, deixando o sistema emergir dos dados.",
     metaHint: "Escreva o metatexto: comunique o novo compreendido a partir das categorias emergentes.",
   },
   fenomenologia: {
@@ -392,7 +398,9 @@ const METHODS = {
     desc: "Busca a estrutura do fenômeno tal como é vivido. Destacam-se unidades de significado nos relatos, faz-se a análise ideográfica (de cada sujeito) e a nomotética (convergências entre sujeitos), até a síntese da estrutura do fenômeno.",
     steps: ["Leitura dos relatos em atitude fenomenológica", "Unidades de significado: destacar trechos significativos", "Análise ideográfica: agrupar em categorias abertas", "Análise nomotética e síntese: convergências → estrutura"],
     tabs: { codificacao: "Unidades de significado", categorias: "Categorias abertas", quantitativo: "Convergências", confiabilidade: "Confiabilidade", metatexto: "Síntese" },
+    show: ["codificacao", "categorias", "metatexto"],
     ref: "Ex.: Giorgi; Bicudo (fenomenologia na pesquisa qualitativa).",
+    catHint: "Categorias abertas (análise ideográfica): agrupe as unidades de significado buscando convergências entre os sujeitos.",
     metaHint: "Escreva a síntese: a estrutura do fenômeno tal como se mostrou nas convergências entre os sujeitos.",
   },
   discurso: {
@@ -400,7 +408,9 @@ const METHODS = {
     desc: "Analisa não o conteúdo em si, mas como os sentidos são produzidos: recortes discursivos, formações discursivas e as condições de produção (histórico-ideológicas) do discurso.",
     steps: ["Constituir o corpus discursivo", "Recortes discursivos: destacar sequências significativas", "Formações discursivas: agrupar por regularidades de sentido", "Interpretação: sentidos, posições e condições de produção"],
     tabs: { codificacao: "Recortes discursivos", categorias: "Formações discursivas", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Interpretação" },
+    show: ["codificacao", "categorias", "metatexto"],
     ref: "Ex.: Pêcheux; Orlandi (análise de discurso).",
+    catHint: "Formações discursivas: agrupe os recortes por regularidades de sentido (não por frequência).",
     metaHint: "Interprete os sentidos e as formações discursivas, considerando as condições de produção e as posições do sujeito.",
   },
   grounded: {
@@ -408,7 +418,9 @@ const METHODS = {
     desc: "Constrói teoria a partir dos dados por níveis de codificação: aberta (rotular incidentes), axial (relacionar categorias) e seletiva (integrar em torno de uma categoria central).",
     steps: ["Codificação aberta: rotular incidentes nos dados", "Codificação axial: relacionar e agrupar categorias", "Codificação seletiva: integrar em torno da categoria central", "Teoria: articular as relações entre categorias"],
     tabs: { codificacao: "Codificação aberta", categorias: "Codificação axial", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Teoria (cod. seletiva)" },
+    show: ["codificacao", "categorias", "metatexto"],
     ref: "Ex.: Glaser & Strauss; Charmaz (grounded theory).",
+    catHint: "Codificação axial: relacione e agrupe os códigos abertos em categorias mais densas.",
     metaHint: "Articule a teoria emergente: a categoria central e suas relações com as demais categorias.",
   },
   narrativas: {
@@ -416,7 +428,9 @@ const METHODS = {
     desc: "Toma as narrativas como unidade de análise: identifica unidades narrativas, organiza enredos e temas e interpreta os sentidos e recorrências das histórias contadas.",
     steps: ["Ler as narrativas como totalidades", "Unidades narrativas: destacar episódios/sequências", "Temas e enredos: agrupar por recorrências", "Interpretação: sentidos e recorrências das histórias"],
     tabs: { codificacao: "Unidades narrativas", categorias: "Temas / enredos", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Interpretação" },
+    show: ["codificacao", "categorias", "metatexto"],
     ref: "Ex.: Clandinin & Connelly; Riessman (pesquisa narrativa).",
+    catHint: "Temas / enredos: agrupe as unidades narrativas por recorrências e por enredos.",
     metaHint: "Interprete as narrativas: enredos, sentidos atribuídos e recorrências entre as histórias.",
   },
 };
@@ -797,7 +811,9 @@ function App() {
 
   const method = (project && project.method) || "livre";
   const MET = METHODS[method] || METHODS.livre;
-  const TABS = ["codificacao", "categorias", "quantitativo", "confiabilidade", "metatexto"].map((k) => [k, MET.tabs[k]]);
+  const shown = MET.show || ["codificacao", "categorias", "quantitativo", "confiabilidade", "metatexto"];
+  const TABS = shown.map((k) => [k, MET.tabs[k]]);
+  const activeTab = shown.includes(tab) ? tab : shown[0]; // se a aba atual não existe neste método, cai na 1ª
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", color: C.ink, background: C.paper, height: "88vh", minHeight: 560, display: "flex", flexDirection: "column", borderRadius: 6, overflow: "hidden", border: `1px solid ${C.line}` }}>
@@ -877,29 +893,29 @@ function App() {
         {TABS.map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             fontFamily: "system-ui", fontSize: 13, padding: "7px 14px", border: "none", cursor: "pointer",
-            background: tab === k ? C.paper : "transparent", color: tab === k ? C.accent : C.sub,
-            borderBottom: tab === k ? `2px solid ${C.accent}` : "2px solid transparent", fontWeight: tab === k ? 600 : 400,
+            background: activeTab === k ? C.paper : "transparent", color: activeTab === k ? C.accent : C.sub,
+            borderBottom: activeTab === k ? `2px solid ${C.accent}` : "2px solid transparent", fontWeight: activeTab === k ? 600 : 400,
             borderRadius: "4px 4px 0 0",
           }}>{label}</button>
         ))}
       </div>
 
       <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
-        {tab === "codificacao" && (
+        {activeTab === "codificacao" && (
           <CodificacaoView {...{ project, segments, codeMap, C, pending, setPending, selExcerpt, setSelExcerpt,
             addCode, assignCode, removeCode, renameCode, mergeCode, removeExcerpt, setExcerptMemo, toggleCodeOnExcerpt,
             pasteMode, setPasteMode, pasteVal, setPasteVal, applyPaste, fileRef, onFile, onMouseUp }} />
         )}
-        {tab === "categorias" && (
-          <CategoriasView {...{ project, codeFreq, C, addCategory, updateCategory, removeCategory, toggleCodeInCategory }} />
+        {activeTab === "categorias" && (
+          <CategoriasView {...{ project, codeFreq, C, addCategory, updateCategory, removeCategory, toggleCodeInCategory, catHint: MET.catHint, catLabel: MET.tabs.categorias }} />
         )}
-        {tab === "quantitativo" && (
+        {activeTab === "quantitativo" && (
           <QuantitativoView {...{ project, codeFreq, catFreq, cooc, codeMap, C, excludeWord, includeWord }} />
         )}
-        {tab === "confiabilidade" && (
+        {activeTab === "confiabilidade" && (
           <ConfiabilidadeView {...{ projectA: project, index, cmpB, onPickB, onFileB, onExample: loadReliabilityExample, C }} />
         )}
-        {tab === "metatexto" && (
+        {activeTab === "metatexto" && (
           <MetatextoView {...{ project, C, addMetatext, updateMetatext, removeMetatext, metaLabel: MET.tabs.metatexto, metaHint: MET.metaHint }} />
         )}
       </div>
@@ -1109,11 +1125,12 @@ function CodificacaoView(props) {
 }
 
 // ============ CATEGORIAS ============
-function CategoriasView({ project, codeFreq, C, addCategory, updateCategory, removeCategory, toggleCodeInCategory }) {
+function CategoriasView({ project, codeFreq, C, addCategory, updateCategory, removeCategory, toggleCodeInCategory, catHint, catLabel }) {
   const assigned = new Set(project.categories.flatMap((c) => c.codeIds));
   const livres = codeFreq.filter((c) => !assigned.has(c.id));
   return (
     <div style={{ flex: 1, overflow: "auto", padding: 18 }}>
+      {catHint && <div style={{ fontFamily: "system-ui", fontSize: 12.5, color: C.sub, lineHeight: 1.5, marginBottom: 12, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 10px" }}><b>{catLabel || "Categorias"}:</b> {catHint}</div>}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center" }}>
         <button onClick={() => addCategory("Nova categoria", "emergente")} style={{ ...btnStyle(C), background: C.accent, color: "#fff", border: "none" }}>+ categoria emergente</button>
         <button onClick={() => addCategory("Nova categoria", "apriori")} style={btnStyle(C)}>+ categoria a priori</button>
