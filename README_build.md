@@ -1,19 +1,20 @@
 # Build do QualMap
 
-Gera o `QualMap.html` (arquivo único, offline, abre por duplo clique) a partir do código-fonte `qualmap_v9.jsx`.
+Gera o `QualMap.html` (arquivo único, offline, abre por duplo clique) a partir do
+código-fonte modular em `src/`.
 
 ## Pré-requisitos
 - Node.js 18 ou superior.
 
 ## Passos (uma vez)
-Na pasta onde estão `qualmap_v9.jsx`, `build_qualmap.mjs` e `package.json`:
+Na pasta do projeto (onde estão `src/`, `build_qualmap.mjs` e `package.json`):
 
 ```
 npm install
 ```
 
-Isso instala as dependências de build e as bibliotecas que são embutidas no HTML
-(react, react-dom, prop-types, recharts, mammoth) e o Babel.
+Isso instala o esbuild (bundler), as bibliotecas empacotadas no app
+(react, react-dom, recharts) e o mammoth (embutido para leitura de `.docx`).
 
 ## Gerar o HTML
 ```
@@ -21,20 +22,40 @@ npm run build
 ```
 ou diretamente:
 ```
-node build_qualmap.mjs qualmap_v9.jsx QualMap.html
+node build_qualmap.mjs src/main.jsx QualMap.html
 ```
 
-Saída: `QualMap.html` (~1,5 MB). É só abrir no navegador.
+Saída: `QualMap.html` (~1,3 MB). É só abrir no navegador.
 
-## Como funciona
-O script lê o `.jsx`, remove as linhas de `import`, injeta um preâmbulo que pega
-React/Recharts do escopo global (UMD), transpila com Babel (preset-react clássico,
-ou seja, `React.createElement`) e embute as bibliotecas e o app num único HTML.
-Ele também injeta o CSS de foco visível por teclado (acessibilidade).
+## Estrutura do código (`src/`)
+- `lib.js` — camada compartilhada: cores, `NODE_TYPES`, `MOMENTS`, geometria/SVG
+  (`buildInner`), layouts, `brandes`, `parseCSV`, seeds, `Hint`, `SUITE` (ponte
+  entre as ferramentas). Exporta tudo num barrel no fim do arquivo.
+- `EditorTAR.jsx` — editor Ator-Rede. Uma única instância serve duas janelas via
+  a prop `viewMode`: **Codificação TAR** (`analise`) e **Diagramas** (`diagrama`).
+- `AnaliseQualitativa.jsx` — análise textual (codificação, categorias, metatexto,
+  confiabilidade). Persiste em `window.storage` (localStorage).
+- `AnaliseQuantitativa.jsx` — janela quantitativa: lê os dois lados pela ponte
+  `SUITE` (`getTar`/`getQual`) ao ser aberta. Hoje mostra frequências do texto e
+  métricas da rede; é o lugar previsto para os **testes estatísticos**.
+- `App.jsx` — casca com as 4 abas + salvar/abrir QualMap + tutorial.
+- `main.jsx` — ponto de entrada (`createRoot`).
+
+As 4 janelas:
+
+```
+Codificação TAR ─┐ mesma rede        Análise Qualitativa ─┐ mesmo texto
+Diagramas ───────┘ (estado do TAR)   Análise Quantitativa ┘ (via SUITE)
+```
+
+## Como funciona o build
+O `build_qualmap.mjs` faz o bundle de `src/main.jsx` com **esbuild** (resolve os
+imports do `src/` e empacota react/react-dom/recharts no próprio bundle, sem UMD
+avulso), embute o `mammoth` como UMD (`window.mammoth`), injeta o shim
+`window.storage` (localStorage) e o CSS de foco visível, e escreve um HTML único.
 
 ## Editar o app
-Altere `qualmap_v9.jsx` e rode o build de novo. Para versionar, copie para
-`qualmap_v10.jsx` e ajuste o comando/`package.json` para apontar para o novo arquivo.
+Altere os arquivos em `src/` e rode `npm run build` de novo.
 
 ## Observações
 - O `.docx` é lido via `mammoth` (embutido), então a importação de Word funciona offline.
