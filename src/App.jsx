@@ -132,28 +132,76 @@ export default function App() {
       )}
       {showAbout && (
         <div role="dialog" aria-modal="true" aria-label="Sobre o QualMap" onClick={() => setShowAbout(false)} style={{ position: "fixed", inset: 0, background: "rgba(20,30,38,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1300 }}>
-          <div ref={aboutRef} onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, maxWidth: 480, width: "100%", boxShadow: "0 12px 40px rgba(0,0,0,.3)", padding: "24px 26px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <svg width="30" height="30" viewBox="0 0 26 26" aria-hidden="true">
-                <circle cx="6" cy="7" r="3" fill="#1f7a8c" /><circle cx="20" cy="6" r="2.4" fill="#7a5ea8" /><circle cx="19" cy="19" r="3" fill="#2e7d4f" /><circle cx="7" cy="18" r="2.2" fill="#b06a1f" />
-                <line x1="6" y1="7" x2="20" y2="6" stroke="#cfd6dd" strokeWidth="1.4" /><line x1="6" y1="7" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" /><line x1="20" y1="6" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" /><line x1="7" y1="18" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" /><line x1="6" y1="7" x2="7" y2="18" stroke="#cfd6dd" strokeWidth="1.4" />
+          <div ref={aboutRef} onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, maxWidth: 560, width: "100%", maxHeight: "86vh", overflow: "auto", boxShadow: "0 12px 40px rgba(0,0,0,.3)", padding: "24px 26px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <svg width="42" height="42" viewBox="0 0 26 26" aria-hidden="true">
+                <line x1="6" y1="7" x2="20" y2="6" stroke="#cfd6dd" strokeWidth="1.4" />
+                <line x1="6" y1="7" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" />
+                <line x1="20" y1="6" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" />
+                <line x1="7" y1="18" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" />
+                <line x1="6" y1="7" x2="7" y2="18" stroke="#cfd6dd" strokeWidth="1.4" />
+                <circle cx="6" cy="7" r="3" fill="#1f7a8c" />
+                <circle cx="20" cy="6" r="2.4" fill="#7a5ea8" />
+                <circle cx="19" cy="19" r="3" fill="#2e7d4f" />
+                <circle cx="7" cy="18" r="2.2" fill="#b06a1f" />
               </svg>
-              <div><div style={{ fontWeight: 800, color: "#1f7a8c", fontSize: 20 }}>QualMap</div><div style={{ fontSize: 11.5, color: "#7a8b99" }}>análise quanti-quali e diagramas · versão 9</div></div>
+              <div>
+                <div style={{ fontWeight: 800, color: "#1f7a8c", fontSize: 22, letterSpacing: 0.2 }}>QualMap</div>
+                <div style={{ fontSize: 12, color: "#7a8b99" }}>análise quanti-quali e diagramas · versão 9</div>
+              </div>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => setShowAbout(false)} aria-label="Fechar" style={{ ...miniBtn, padding: "4px 10px", lineHeight: 1 }}>✕</button>
             </div>
-            <p style={{ margin: "6px 0 12px", fontSize: 13.5, color: "#46555f", lineHeight: 1.55 }}>
-              Ferramenta para pesquisa qualitativa e quantitativa. Reúne quatro janelas que trabalham em conjunto:
+
+            <h3 style={{ margin: "0 0 6px", fontSize: 13, color: "#1f7a8c", textTransform: "uppercase", letterSpacing: ".5px" }}>Sobre o software</h3>
+            <p style={{ margin: "0 0 10px", fontSize: 13.5, color: "#46555f", lineHeight: 1.6 }}>
+              O QualMap é um ambiente para pesquisa qualitativa e quantitativa que reúne quatro janelas integradas. A <strong>Teoria Ator-Rede</strong> e o <strong>Diagrama</strong> permitem cadastrar e desenhar redes inspiradas na Teoria Ator-Rede (Latour, Callon, Law) — momentos da tradução, pontos de passagem obrigatória, caixas-pretas, porta-vozes, mediadores e intermediários, além de métricas de rede como grau e intermediação — e também um mapa conceitual livre.
             </p>
-            <ul style={{ margin: "0 0 12px", paddingLeft: 18, fontSize: 13, color: "#46555f", lineHeight: 1.6 }}>
-              <li><strong>Teoria Ator-Rede</strong> — cadastro de actantes e associações com resumo da rede.</li>
-              <li><strong>Diagrama</strong> — rede Ator-Rede (TAR) e mapa conceitual livre (Geral).</li>
-              <li><strong>Análise Qualitativa</strong> — codificação de texto, categorias e metatexto.</li>
-              <li><strong>Análise Quantitativa</strong> — testes estatísticos (descritivas, t, ANOVA, correlação, qui-quadrado, não-paramétricos e mais).</li>
-            </ul>
-            <p style={{ margin: "0 0 16px", fontSize: 12, color: "#7a8b99", lineHeight: 1.5 }}>
-              Funciona offline no navegador; seus dados ficam no seu computador. Use o menu <strong>Arquivo</strong> para salvar e abrir o projeto completo.
+            <p style={{ margin: "0 0 10px", fontSize: 13.5, color: "#46555f", lineHeight: 1.6 }}>
+              A <strong>Análise Qualitativa</strong> apoia a codificação de entrevistas e documentos: seleção de trechos, aplicação e agrupamento de códigos em categorias e redação do metatexto. A <strong>Análise Quantitativa</strong> oferece testes estatísticos (descritivas, t, ANOVA, correlação, qui-quadrado e não-paramétricos). Tudo funciona totalmente offline — no navegador ou como aplicativo de desktop — e o trabalho pode ser salvo e compartilhado num único arquivo.
             </p>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <span style={{ fontSize: 11.5, color: "#9aa7b2" }}>Evandro Nakajima</span>
+
+            <h3 style={{ margin: "18px 0 8px", fontSize: 13, color: "#1f7a8c", textTransform: "uppercase", letterSpacing: ".5px" }}>Desenvolvedores</h3>
+            {[
+              {
+                nome: "Antonio Augusto Ignacio",
+                formacao: [
+                  "Bacharelado em Química (2023)",
+                  "Licenciatura em Ciências Biológicas (2025)",
+                  "Licenciatura em Matemática (2026)",
+                  "Licenciatura em Pedagogia (2026)",
+                  "Mestrado em Ciências Ambientais (UTFPR, 2026)",
+                  "Doutorando em Educação em Ciências e Educação Matemática (UNIOESTE)",
+                ],
+                resumo: "Atua principalmente nas áreas relacionadas ao ensino de matemática e ciências, com experiência em modelagem matemática, engenharia química e análise, desenvolvimento e validação de softwares. É autor de softwares científicos como PDESolver, Pyisotherm, DRMSimulator e HexapodaID.",
+              },
+              {
+                nome: "Evandro Alves Nakajima",
+                formacao: [
+                  "Graduação em Matemática (UEM, 2010)",
+                  "Mestrado em Matemática (USP, 2013)",
+                  "Doutorado em Engenharia Química (UNIOESTE, 2023)",
+                  "Professor Adjunto da UTFPR, Campus Santa Helena",
+                ],
+                resumo: "Atua nas áreas de Matemática Aplicada e Engenharia Química, com ênfase em modelagem matemática, métodos numéricos e simulação de processos. Suas pesquisas abrangem simulação de adsorção em leito fixo, reforma a seco do metano, otimização e redes neurais, além do ensino de matemática e ciências. É autor de softwares científicos como PDESolver, Pyisotherm, DRMSimulator e HexapodaID.",
+              },
+            ].map((d, i) => (
+              <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid #f0f4f7" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#2b3a42", marginBottom: 4 }}>{d.nome}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#9aa7b1", textTransform: "uppercase", letterSpacing: ".5px", margin: "6px 0 3px" }}>Formação</div>
+                <ul style={{ margin: "0 0 4px", paddingLeft: 18 }}>
+                  {d.formacao.map((f, j) => (<li key={j} style={{ fontSize: 12.5, color: "#46555f", lineHeight: 1.5 }}>{f}</li>))}
+                </ul>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#9aa7b1", textTransform: "uppercase", letterSpacing: ".5px", margin: "8px 0 3px" }}>Resumo</div>
+                <p style={{ margin: 0, fontSize: 12.5, color: "#46555f", lineHeight: 1.6, textAlign: "justify" }}>{d.resumo}</p>
+              </div>
+            ))}
+
+            <div style={{ borderTop: "1px solid #eef2f5", marginTop: 18, paddingTop: 12, fontSize: 11.5, color: "#7a8b99", lineHeight: 1.6 }}>
+              © 2026 QualMap. Software livre para uso acadêmico e educacional.
+            </div>
+
+            <div style={{ display: "flex", marginTop: 16 }}>
               <div style={{ flex: 1 }} />
               <button onClick={() => setShowAbout(false)} style={primaryBtn}>Fechar</button>
             </div>
