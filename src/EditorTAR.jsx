@@ -673,7 +673,7 @@ table.cent{border-collapse:collapse;width:100%;font-size:12px} table.cent th{tex
   return (
     <div style={ui.page}>
       <div style={ui.bar}>
-        <strong style={{ fontSize: 15, marginRight: 4 }}>{viewMode === "analise" ? "Codificação TAR" : "Diagrama"}</strong>
+        <strong style={{ fontSize: 15, marginRight: 4 }}>{viewMode === "analise" ? "Teoria Ator-Rede" : "Diagrama TAR"}</strong>
         {!controlledView && (
           <div id="tour-tabs" style={{ display: "flex", border: "1px solid #cfd6dd", borderRadius: 6, overflow: "hidden", marginRight: 6 }}>
             {[["analise", "Análise"], ["diagrama", "Diagrama"]].map(([v, l]) => (

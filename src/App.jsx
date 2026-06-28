@@ -3,21 +3,23 @@ import { SUITE, useModalTrap } from "./lib.js";
 import { EditorTAR } from "./EditorTAR.jsx";
 import { AnaliseQualitativa } from "./AnaliseQualitativa.jsx";
 import { AnaliseQuantitativa } from "./AnaliseQuantitativa.jsx";
+import { DiagramaGeral } from "./DiagramaGeral.jsx";
 
 /* ===== Casca: seletor de ferramentas ===== */
 const TOURQ = [
-  { t: "Bem-vindo ao QualMap", b: "O QualMap reúne quatro janelas: Codificação TAR, Diagramas, Análise Qualitativa e Análise Quantitativa. Vamos ver cada uma. As duas primeiras compartilham a mesma rede; as duas últimas, o mesmo texto." },
-  { t: "Codificação TAR", b: "Aqui você cadastra os actantes (caixas) e as associações (ligações) da Teoria Ator-Rede em tabelas. Tudo o que você cadastra aparece também na janela Diagramas.", tool: "tar-cod" },
-  { t: "Diagramas", b: "Aqui você desenha a rede: insere caixas, liga nós e organiza o layout. O exemplo mostra os tipos de caixa, os momentos da tradução e as relações.", tool: "tar-diag" },
+  { t: "Bem-vindo ao QualMap", b: "O QualMap reúne quatro janelas: Teoria Ator-Rede, Diagrama, Análise Qualitativa e Análise Quantitativa. Vamos ver cada uma." },
+  { t: "Teoria Ator-Rede", b: "Aqui você cadastra os actantes (caixas) e as associações (ligações) da Teoria Ator-Rede em tabelas, com o resumo da rede. Tudo o que você cadastra aparece também no Diagrama TAR.", tool: "tar" },
+  { t: "Diagrama", b: "A aba Diagrama tem duas sub-abas: TAR (a rede Ator-Rede, ligada à Teoria Ator-Rede) e Geral (um mapa conceitual livre, independente).", tool: "diag" },
   { t: "Análise Qualitativa", b: "Aqui você analisa texto: o exemplo já traz uma entrevista codificada. Selecione trechos e aplique códigos, agrupe em categorias e escreva o metatexto. O botão ? Ajuda explica o fluxo.", tool: "qual" },
-  { t: "Análise Quantitativa", b: "Aqui ficam as frequências do texto (códigos, co-ocorrência) e as métricas da rede TAR (grau, intermediação).", tool: "quant" },
+  { t: "Análise Quantitativa", b: "Espaço dedicado aos testes estatísticos, independente das outras abas.", tool: "quant" },
 ];
 export default function App() {
-  const [tool, setTool] = useState("tar-cod");
+  const [tool, setTool] = useState("tar");
+  const [diagSub, setDiagSub] = useState("tar"); // sub-aba do Diagrama: "tar" | "geral"
   const [tourQ, setTourQ] = useState(-1);
-  const tabs = [["tar-cod", "Codificação TAR"], ["tar-diag", "Diagramas"], ["qual", "Análise Qualitativa"], ["quant", "Análise Quantitativa"]];
-  const tarActive = tool === "tar-cod" || tool === "tar-diag";
-  const tarView = tool === "tar-diag" ? "diagrama" : "analise";
+  const tabs = [["tar", "Teoria Ator-Rede"], ["diag", "Diagrama"], ["qual", "Análise Qualitativa"], ["quant", "Análise Quantitativa"]];
+  const showTar = tool === "tar" || (tool === "diag" && diagSub === "tar");
+  const tarView = tool === "tar" ? "analise" : "diagrama";
   const finishTourQ = () => { setTourQ(-1); try { window.localStorage.setItem("qualmap_tour_done", "1"); } catch {} };
   useEffect(() => { try { if (!window.localStorage.getItem("qualmap_tour_done")) setTourQ(0); } catch {} }, []);
   useEffect(() => { if (tourQ < 0) return; const st = TOURQ[tourQ]; if (st && st.tool && tool !== st.tool) setTool(st.tool); }, [tourQ]);
@@ -85,8 +87,19 @@ export default function App() {
         <label style={{ ...miniBtn, display: "inline-block" }} title="abrir um projeto do QualMap (.json)">Abrir QualMap<input ref={fileRefAll} type="file" accept=".json,application/json" onChange={abrirTudo} style={{ display: "none" }} /></label>
         <button onClick={() => setTourQ(0)} style={miniBtn} title="abrir o tutorial das duas ferramentas">Tutorial</button>
       </div>
+      {tool === "diag" && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderBottom: "1px solid #eef1f4", background: "#fafbfc", flexShrink: 0 }}>
+          <span style={{ fontSize: 11.5, color: "#7a8b99", fontWeight: 600 }}>Diagrama:</span>
+          <div style={{ display: "flex", border: "1px solid #cfd6dd", borderRadius: 6, overflow: "hidden" }}>
+            {[["tar", "TAR"], ["geral", "Geral"]].map(([v, l]) => (
+              <button key={v} onClick={() => setDiagSub(v)} style={{ border: "none", padding: "5px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, background: diagSub === v ? "#1f7a8c" : "#fff", color: diagSub === v ? "#fff" : "#5a6b7a" }}>{l}</button>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-        <div style={{ display: tarActive ? "block" : "none", height: "100%" }}><EditorTAR active={tarActive} viewMode={tarView} setViewMode={(v) => setTool(v === "diagrama" ? "tar-diag" : "tar-cod")} /></div>
+        <div style={{ display: showTar ? "block" : "none", height: "100%" }}><EditorTAR active={showTar} viewMode={tarView} setViewMode={(v) => { if (v === "diagrama") { setTool("diag"); setDiagSub("tar"); } else setTool("tar"); }} /></div>
+        <div style={{ display: tool === "diag" && diagSub === "geral" ? "block" : "none", height: "100%" }}><DiagramaGeral active={tool === "diag" && diagSub === "geral"} /></div>
         <div style={{ display: tool === "qual" ? "block" : "none", height: "100%" }}><AnaliseQualitativa /></div>
         <div style={{ display: tool === "quant" ? "block" : "none", height: "100%" }}><AnaliseQuantitativa active={tool === "quant"} /></div>
       </div>
