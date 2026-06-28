@@ -901,7 +901,7 @@ table.cent{border-collapse:collapse;width:100%;font-size:12px} table.cent th{tex
               <span style={ui.label}>Rótulo</span>
               <input style={ui.input} value={selRegionObj.label} onChange={(e) => mut((s) => ({ ...s, regions: s.regions.map((r) => (r.id === selRegion ? { ...r, label: e.target.value } : r)) }))} onFocus={pushHist} />
               <span style={ui.label}>Cor</span>
-              <div style={{ display: "flex", gap: 6 }}>{REGION_COLORS.map((c) => (<button key={c} onClick={() => mut((s) => ({ ...s, regions: s.regions.map((r) => (r.id === selRegion ? { ...r, color: c } : r)) }))} style={{ width: 26, height: 22, borderRadius: 5, border: selRegionObj.color === c ? "2px solid #1f7a8c" : "1px solid #cfd6dd", background: c, cursor: "pointer" }} />))}</div>
+              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>{REGION_COLORS.map((c) => (<button key={c} onClick={() => mut((s) => ({ ...s, regions: s.regions.map((r) => (r.id === selRegion ? { ...r, color: c } : r)) }))} style={{ width: 26, height: 22, borderRadius: 5, border: selRegionObj.color === c ? "2px solid #1f7a8c" : "1px solid #cfd6dd", background: c, cursor: "pointer" }} />))}<input type="color" value={selRegionObj.color || "#3a6ea5"} onChange={(e) => mut((s) => ({ ...s, regions: s.regions.map((r) => (r.id === selRegion ? { ...r, color: e.target.value } : r)) }))} title="cor personalizada" style={{ width: 28, height: 22, padding: 0, border: "1px solid #cfd6dd", borderRadius: 5, background: "none", cursor: "pointer" }} /></div>
               <button style={{ ...ui.btn(), marginTop: 12, width: "100%" }} onClick={deleteSelected}>Remover região</button>
             </>
           )}

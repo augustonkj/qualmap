@@ -9,7 +9,8 @@ import { wrapText, esc, REGION_COLORS, SUITE, Menu, MenuItem } from "./lib.js";
 
 const VBW = 1000, VBH = 620;
 const FS = 14, CW = FS * 0.58, LH = FS * 1.32, PADX = 14, PADY = 9, WRAP = 18;
-const COLORS = ["#cfe0e8", ...REGION_COLORS.map((c) => c), "#ffffff"];
+const COLORS = ["#ffffff", "#cfe0e8", "#bfe0cc", "#f6d7a8", "#f3c0c0", "#d9cde8", "#cfd6dd",
+  "#3a6ea5", "#2e7d4f", "#c98a2b", "#b3402f", "#7a5ea8", "#1abc9c", "#34495e"];
 
 const uid = () => "g" + Math.random().toString(36).slice(2, 8);
 
@@ -267,6 +268,7 @@ function DiagramaGeral({ active = true }) {
               <label style={lbl}>Cor</label>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {COLORS.map((c) => (<button key={c} onClick={() => setNodeColor(c)} style={{ width: 26, height: 22, borderRadius: 5, border: (selNode.color || "#ffffff") === c ? "2px solid #1f7a8c" : "1px solid #cfd6dd", background: c, cursor: "pointer" }} />))}
+                <input type="color" value={selNode.color || "#ffffff"} onChange={(e) => setNodeColor(e.target.value)} title="cor personalizada" style={{ width: 28, height: 22, padding: 0, border: "1px solid #cfd6dd", borderRadius: 5, background: "none", cursor: "pointer" }} />
               </div>
               <button style={{ ...mini, marginTop: 12 }} onClick={removeSel}>Excluir nó</button>
             </div>

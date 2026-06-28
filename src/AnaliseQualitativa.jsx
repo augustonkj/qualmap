@@ -16,9 +16,10 @@ const AnaliseQualitativa = (() => {
 */
 
 const PALETTE = [
-  "#c0392b", "#d35400", "#b7950b", "#27ae60", "#16a085",
-  "#2980b9", "#8e44ad", "#c2185b", "#7f8c8d", "#5d6d7e",
-  "#a04000", "#1e8449",
+  "#c0392b", "#e74c3c", "#d35400", "#e67e22", "#f39c12", "#b7950b",
+  "#27ae60", "#2ecc71", "#16a085", "#1abc9c", "#2980b9", "#3498db",
+  "#8e44ad", "#9b59b6", "#c2185b", "#e91e63", "#34495e", "#5d6d7e",
+  "#7f8c8d", "#a04000", "#1e8449", "#6c3483",
 ];
 
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -690,6 +691,9 @@ function App() {
   function renameCode(codeId, name) {
     update((p) => ({ codes: p.codes.map((c) => c.id === codeId ? { ...c, name } : c) }));
   }
+  function setCodeColor(codeId, color) {
+    update((p) => ({ codes: p.codes.map((c) => c.id === codeId ? { ...c, color } : c) }));
+  }
   function mergeCode(fromId, intoId) {
     if (!fromId || !intoId || fromId === intoId) return;
     update((p) => ({
@@ -953,7 +957,7 @@ function App() {
       <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
         {activeTab === "codificacao" && (
           <CodificacaoView {...{ project, segments, codeMap, C, pending, setPending, selExcerpt, setSelExcerpt,
-            addCode, assignCode, removeCode, renameCode, mergeCode, removeExcerpt, setExcerptMemo, toggleCodeOnExcerpt,
+            addCode, assignCode, removeCode, renameCode, setCodeColor, mergeCode, removeExcerpt, setExcerptMemo, toggleCodeOnExcerpt,
             pasteMode, setPasteMode, pasteVal, setPasteVal, applyPaste, fileRef, onFile, onMouseUp }} />
         )}
         {activeTab === "categorias" && (
@@ -984,7 +988,7 @@ function Btn({ children, onClick, danger }) {
 // ============ CODIFICAÇÃO ============
 function CodificacaoView(props) {
   const { project, segments, codeMap, C, pending, setPending, selExcerpt, setSelExcerpt,
-    addCode, assignCode, removeCode, renameCode, mergeCode, removeExcerpt, setExcerptMemo, toggleCodeOnExcerpt,
+    addCode, assignCode, removeCode, renameCode, setCodeColor, mergeCode, removeExcerpt, setExcerptMemo, toggleCodeOnExcerpt,
     pasteMode, setPasteMode, pasteVal, setPasteVal, applyPaste, fileRef, onFile, onMouseUp } = props;
   const [newCode, setNewCode] = useState("");
   const ex = selExcerpt ? project.excerpts.find((e) => e.id === selExcerpt) : null;
@@ -1138,7 +1142,7 @@ function CodificacaoView(props) {
             const n = project.excerpts.filter((e) => e.codeIds.includes(c.id)).length;
             return (
               <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: c.color, flexShrink: 0 }} />
+                <input type="color" value={c.color} onChange={(e) => setCodeColor(c.id, e.target.value)} title="cor do código" style={{ width: 20, height: 20, padding: 0, border: "none", background: "none", cursor: "pointer", flexShrink: 0 }} />
                 <input value={c.name} onChange={(e) => renameCode(c.id, e.target.value)}
                   style={{ flex: 1, fontFamily: "system-ui", fontSize: 13, border: "none", background: "transparent", borderBottom: `1px solid transparent` }}
                   onFocus={(e) => e.target.style.borderBottom = `1px solid ${C.line}`} onBlur={(e) => e.target.style.borderBottom = "1px solid transparent"} />
