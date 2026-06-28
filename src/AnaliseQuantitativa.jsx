@@ -255,9 +255,31 @@ const INFO = {
   },
 };
 
+// grade (planilha) editável -> dataset; e texto colado -> grade
+function emptyGrid(cols = 2, rows = 6) {
+  return { headers: Array.from({ length: cols }, (_, i) => "var" + (i + 1)), rows: Array.from({ length: rows }, () => Array.from({ length: cols }, () => "")) };
+}
+function gridToData(grid) {
+  const used = new Set();
+  const headers = grid.headers.map((h, i) => { let base = String(h).trim() || ("col" + (i + 1)), name = base, k = 2; while (used.has(name)) name = base + "_" + k++; used.add(name); return name; });
+  const body = grid.rows.filter((r) => r.some((c) => String(c).trim() !== "")).map((r) => headers.map((_, j) => (r[j] != null ? r[j] : "")));
+  if (!headers.length || !body.length) return null;
+  const cols = {}; headers.forEach((h, j) => { cols[h] = body.map((r) => r[j]); });
+  const numeric = {};
+  headers.forEach((h) => { const vals = cols[h].filter((v) => String(v).trim() !== ""); const ok = vals.filter((v) => Number.isFinite(parseFloat(String(v).replace(",", ".")))).length; numeric[h] = vals.length > 0 && ok / vals.length >= 0.8; });
+  return { headers, rows: body, cols, numeric, n: body.length };
+}
+function textToGrid(text) {
+  const firstLine = String(text).split(/\r?\n/)[0] || "";
+  const rows = parseDelim(text, detectDelim(firstLine));
+  if (!rows.length) return null;
+  const headers = rows[0].map((h, i) => String(h).trim() || ("col" + (i + 1)));
+  const body = rows.slice(1).map((r) => headers.map((_, j) => (r[j] != null ? String(r[j]) : "")));
+  return { headers, rows: body.length ? body : [headers.map(() => "")] };
+}
+
 function AnaliseQuantitativa({ active = true }) {
-  const [text, setText] = useState("");
-  const [data, setData] = useState(null);
+  const [grid, setGrid] = useState(() => emptyGrid());
   const [err, setErr] = useState("");
   const [testKey, setTestKey] = useState("describe");
   const [vars, setVars] = useState({});      // seleções: {num, num2, group, cat1, cat2, items:[]}
@@ -265,26 +287,35 @@ function AnaliseQuantitativa({ active = true }) {
   const [conf, setConf] = useState("0.95");
   const [hMoses, setHMoses] = useState("0");
   const [showFormula, setShowFormula] = useState(false);
+  const [showPaste, setShowPaste] = useState(false);
+  const [pasteText, setPasteText] = useState("");
   const [result, setResult] = useState(null);
 
-  // restaurar
-  useEffect(() => { try { const s = window.localStorage.getItem(LSK); if (s) { const o = JSON.parse(s); if (o && o.text) { setText(o.text); const d = parseTable(o.text); setData(d); } } } catch {} }, []);
-  useEffect(() => { const t = setTimeout(() => { try { window.localStorage.setItem(LSK, JSON.stringify({ text })); } catch {} }, 600); return () => clearTimeout(t); }, [text]);
+  // restaurar / autosave (grade)
+  useEffect(() => { try { const s = window.localStorage.getItem(LSK); if (s) { const o = JSON.parse(s); if (o && o.grid && Array.isArray(o.grid.headers)) setGrid(o.grid); } } catch {} }, []);
+  useEffect(() => { const t = setTimeout(() => { try { window.localStorage.setItem(LSK, JSON.stringify({ grid })); } catch {} }, 600); return () => clearTimeout(t); }, [grid]);
 
+  const data = useMemo(() => gridToData(grid), [grid]);
   const test = ALL.find((t) => t.key === testKey);
   const numCols = useMemo(() => (data ? data.headers.filter((h) => data.numeric[h]) : []), [data]);
   const allCols = data ? data.headers : [];
 
+  // edição da grade
+  const setCell = (r, c, v) => setGrid((g) => ({ ...g, rows: g.rows.map((row, i) => (i === r ? row.map((x, j) => (j === c ? v : x)) : row)) }));
+  const setHeader = (c, v) => setGrid((g) => ({ ...g, headers: g.headers.map((h, j) => (j === c ? v : h)) }));
+  const addRow = () => setGrid((g) => ({ ...g, rows: [...g.rows, g.headers.map(() => "")] }));
+  const addCol = () => setGrid((g) => ({ headers: [...g.headers, "var" + (g.headers.length + 1)], rows: g.rows.map((row) => [...row, ""]) }));
+  const removeRow = (r) => setGrid((g) => ({ ...g, rows: g.rows.length > 1 ? g.rows.filter((_, i) => i !== r) : g.rows }));
+  const removeCol = (c) => setGrid((g) => (g.headers.length > 1 ? { headers: g.headers.filter((_, j) => j !== c), rows: g.rows.map((row) => row.filter((_, j) => j !== c)) } : g));
+  const limpar = () => { setGrid(emptyGrid()); setResult(null); setErr(""); };
+
   const processar = (txt) => {
-    const d = parseTable(txt);
-    if (!d || !d.headers.length || !d.n) { setErr("Não consegui ler a tabela. Verifique se a 1ª linha tem os nomes das colunas e as demais, os dados."); setData(null); return; }
-    setErr(""); setData(d); setResult(null); setVars({});
+    const g = textToGrid(txt);
+    if (!g || !g.headers.length) { setErr("Não consegui ler a tabela colada. Verifique se a 1ª linha tem os nomes das colunas."); return; }
+    setErr(""); setGrid(g); setShowPaste(false); setResult(null);
   };
-  const onFile = (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { setText(String(r.result)); processar(String(r.result)); }; r.readAsText(f); e.target.value = ""; };
-  const exemplo = () => {
-    const ex = "grupo\tnota\tidade\tpre\tpos\nA\t7,5\t20\t5\t7\nA\t8,0\t22\t6\t8\nA\t6,5\t19\t4\t6\nA\t7,0\t21\t5\t7\nB\t5,5\t23\t4\t5\nB\t6,0\t20\t5\t6\nB\t5,0\t24\t3\t5\nB\t6,5\t22\t4\t6";
-    setText(ex); processar(ex);
-  };
+  const onFile = (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => processar(String(r.result)); r.readAsText(f); e.target.value = ""; };
+  const exemplo = () => { setGrid(textToGrid("grupo\tnota\tidade\tpre\tpos\nA\t7,5\t20\t5\t7\nA\t8,0\t22\t6\t8\nA\t6,5\t19\t4\t6\nA\t7,0\t21\t5\t7\nB\t5,5\t23\t4\t5\nB\t6,0\t20\t5\t6\nB\t5,0\t24\t3\t5\nB\t6,5\t22\t4\t6")); setResult(null); setErr(""); };
 
   const col = (name) => (data && name ? data.cols[name] : []);
   const groupsOf = (numName, groupName) => {
@@ -387,29 +418,59 @@ function AnaliseQuantitativa({ active = true }) {
       <p style={T.sub}>Testes estatísticos sobre dados que você cola ou abre aqui. Independente das outras janelas.</p>
       <div style={T.cols}>
 
-        {/* ---- coluna 1: dados ---- */}
-        <div style={{ ...T.card, flex: "1 1 380px", minWidth: 320 }}>
+        {/* ---- coluna 1: dados (grade editável) ---- */}
+        <div style={{ ...T.card, flex: "1 1 420px", minWidth: 340 }}>
           <div style={T.cardH}>1 · Dados</div>
-          <div style={{ fontSize: 12, color: "#6b7c8a", marginBottom: 6 }}>Cole uma tabela (1ª linha = nomes das variáveis; colunas separadas por tabulação, vírgula ou ponto-e-vírgula).</div>
-          <textarea style={T.ta} value={text} onChange={(e) => setText(e.target.value)} placeholder={"grupo\tnota\nA\t7,5\nA\t8,0\nB\t5,5"} />
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-            <button style={T.prim} onClick={() => processar(text)}>Processar dados</button>
-            <label style={{ ...T.btn, display: "inline-block" }}>Abrir arquivo<input type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" onChange={onFile} style={{ display: "none" }} /></label>
-            <button style={T.btn} onClick={exemplo}>Exemplo</button>
-            <button style={T.btn} onClick={() => { setText(""); setData(null); setResult(null); setErr(""); }}>Limpar</button>
+          <div style={{ fontSize: 12, color: "#6b7c8a", marginBottom: 8 }}>Preencha as células. A 1ª linha (cabeçalho) é o nome de cada variável.</div>
+          <div style={{ overflow: "auto", border: "1px solid #e3e9ee", borderRadius: 6, maxHeight: "52vh" }}>
+            <table style={{ borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ position: "sticky", top: 0, background: "#f7f9fb", borderBottom: "1px solid #e3e9ee", width: 22 }} />
+                  {grid.headers.map((h, c) => (
+                    <th key={c} style={{ position: "sticky", top: 0, background: "#f7f9fb", borderBottom: "1px solid #e3e9ee", padding: 2 }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                          <input value={h} onChange={(e) => setHeader(c, e.target.value)} style={{ width: 78, boxSizing: "border-box", padding: "4px 5px", border: "1px solid #cfd6dd", borderRadius: 4, fontSize: 12, fontWeight: 700, color: "#34495e", textAlign: "center" }} />
+                          {grid.headers.length > 1 && <button onClick={() => removeCol(c)} title="remover coluna" style={{ border: "none", background: "none", color: "#b3402f", cursor: "pointer", fontSize: 11, padding: 0 }}>✕</button>}
+                        </div>
+                        {data && data.headers[c] && <div style={{ fontSize: 9, fontWeight: 400, color: data.numeric[data.headers[c]] ? "#2e7d4f" : "#b06a1f", textAlign: "center" }}>{data.numeric[data.headers[c]] ? "num" : "categ"}</div>}
+                      </div>
+                    </th>
+                  ))}
+                  <th style={{ position: "sticky", top: 0, background: "#f7f9fb", borderBottom: "1px solid #e3e9ee", padding: "0 4px" }}><button onClick={addCol} title="adicionar coluna" style={{ border: "1px solid #cfd6dd", background: "#fff", borderRadius: 4, cursor: "pointer", fontSize: 12, color: "#1f7a8c", fontWeight: 700, padding: "2px 6px" }}>＋</button></th>
+                </tr>
+              </thead>
+              <tbody>
+                {grid.rows.map((row, r) => (
+                  <tr key={r}>
+                    <td style={{ textAlign: "center", color: "#9aa7b2" }}>{grid.rows.length > 1 ? <button onClick={() => removeRow(r)} title="remover linha" style={{ border: "none", background: "none", color: "#c3ccd4", cursor: "pointer", fontSize: 11, padding: 0 }}>✕</button> : null}</td>
+                    {grid.headers.map((_, c) => (
+                      <td key={c} style={{ padding: 1 }}><input value={row[c] != null ? row[c] : ""} onChange={(e) => setCell(r, c, e.target.value)} style={{ width: 86, boxSizing: "border-box", padding: "4px 5px", border: "1px solid #eef1f4", borderRadius: 3, fontSize: 12.5, fontFamily: "inherit" }} /></td>
+                    ))}
+                    <td />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {data && (
-            <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 12, color: "#46555f", marginBottom: 4 }}><strong>{data.n}</strong> casos · <strong>{data.headers.length}</strong> variáveis</div>
-              <div style={{ overflowX: "auto", border: "1px solid #eef1f4", borderRadius: 6 }}>
-                <table style={{ borderCollapse: "collapse" }}>
-                  <thead><tr>{data.headers.map((h) => <th key={h} style={T.th}>{h}<div style={{ fontSize: 9, fontWeight: 400, color: data.numeric[h] ? "#2e7d4f" : "#b06a1f" }}>{data.numeric[h] ? "num" : "categ"}</div></th>)}</tr></thead>
-                  <tbody>{data.rows.slice(0, 6).map((r, i) => <tr key={i}>{data.headers.map((h, j) => <td key={j} style={T.td}>{r[j]}</td>)}</tr>)}</tbody>
-                </table>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <button style={T.btn} onClick={addRow}>+ linha</button>
+            <button style={T.btn} onClick={addCol}>+ coluna</button>
+            <button style={T.btn} onClick={exemplo}>Exemplo</button>
+            <button style={T.btn} onClick={limpar}>Limpar</button>
+            <button style={T.btn} onClick={() => setShowPaste((v) => !v)}>Colar / abrir {showPaste ? "▾" : "▸"}</button>
+          </div>
+          {showPaste && (
+            <div style={{ marginTop: 8 }}>
+              <textarea style={T.ta} value={pasteText} onChange={(e) => setPasteText(e.target.value)} placeholder={"grupo\tnota\nA\t7,5\nB\t5,5\n(separador: tabulação, vírgula ou ;)"} />
+              <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                <button style={T.prim} onClick={() => processar(pasteText)} disabled={!pasteText.trim()}>Preencher grade</button>
+                <label style={{ ...T.btn, display: "inline-block" }}>Abrir arquivo<input type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" onChange={onFile} style={{ display: "none" }} /></label>
               </div>
-              {data.n > 6 && <div style={{ fontSize: 11, color: "#9aa7b2", marginTop: 3 }}>(mostrando 6 de {data.n})</div>}
             </div>
           )}
+          <div style={{ fontSize: 12, color: data ? "#46555f" : "#9aa7b2", marginTop: 8 }}>{data ? <><strong>{data.n}</strong> casos válidos · <strong>{data.headers.length}</strong> variáveis</> : "Sem dados ainda — preencha as células."}</div>
         </div>
 
         {/* ---- coluna 2: teste ---- */}
@@ -433,7 +494,7 @@ function AnaliseQuantitativa({ active = true }) {
               )}
             </div>
           )}
-          {!data ? <div style={{ fontSize: 12.5, color: "#9aa7b2", marginTop: 12 }}>Processe os dados ao lado para escolher as variáveis.</div> : (
+          {!data ? <div style={{ fontSize: 12.5, color: "#9aa7b2", marginTop: 12 }}>Preencha os dados na grade ao lado para escolher as variáveis.</div> : (
             <div>
               {renderPickers()}
               <button style={{ ...T.prim, marginTop: 14 }} onClick={calcular}>Calcular</button>
