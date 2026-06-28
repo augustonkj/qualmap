@@ -362,10 +362,43 @@ function buildStandaloneHTML(project) {
 </div></body></html>`;
 }
 
+// Métodos de análise qualitativa: cada um adapta a terminologia das abas e traz seu passo a passo.
+const METHODS = {
+  livre: {
+    name: "Análise livre / genérica",
+    desc: "Fluxo geral de análise qualitativa, sem amarrar a uma abordagem específica: codifique trechos, agrupe em categorias e escreva a interpretação.",
+    steps: ["Codificar trechos do texto", "Agrupar os códigos em categorias", "Quantitativo (opcional)", "Escrever a interpretação"],
+    tabs: { codificacao: "Codificação", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Metatexto" },
+  },
+  conteudo: {
+    name: "Análise de Conteúdo (Bardin)",
+    desc: "Análise sistemática das mensagens em três polos: pré-análise, exploração do material e tratamento dos resultados (inferência). As categorias podem ser a priori (vindas da teoria) ou emergentes (dos dados).",
+    steps: ["Pré-análise: ler e organizar o material", "Exploração: recortar unidades e marcar com códigos", "Categorização: agrupar códigos em categorias", "Tratamento e inferência: quantitativo + interpretação"],
+    tabs: { codificacao: "Codificação", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Inferência" },
+    ref: "Bardin, L. Análise de conteúdo.",
+  },
+  atd: {
+    name: "Análise Textual Discursiva (Moraes & Galiazzi)",
+    desc: "Processo auto-organizado em três momentos: unitarização (desmontar o texto em unidades de significado), categorização (agrupamento emergente) e captação do novo emergente (o metatexto).",
+    steps: ["Unitarização: fragmentar o texto em unidades de significado", "Categorização: agrupar as unidades em categorias emergentes", "Metatexto: comunicar o novo compreendido", "Confiabilidade entre analistas (opcional)"],
+    tabs: { codificacao: "Unitarização", categorias: "Categorias", quantitativo: "Quantitativo", confiabilidade: "Confiabilidade", metatexto: "Metatexto" },
+    ref: "Moraes, R.; Galiazzi, M. C. Análise textual discursiva.",
+  },
+  fenomenologia: {
+    name: "Fenomenologia",
+    desc: "Busca a estrutura do fenômeno tal como é vivido. Destacam-se unidades de significado nos relatos, faz-se a análise ideográfica (de cada sujeito) e a nomotética (convergências entre sujeitos), até a síntese da estrutura do fenômeno.",
+    steps: ["Leitura dos relatos em atitude fenomenológica", "Unidades de significado: destacar trechos significativos", "Análise ideográfica: agrupar em categorias abertas", "Análise nomotética e síntese: convergências → estrutura"],
+    tabs: { codificacao: "Unidades de significado", categorias: "Categorias abertas", quantitativo: "Convergências", confiabilidade: "Confiabilidade", metatexto: "Síntese" },
+    ref: "Ex.: Giorgi; Bicudo (fenomenologia na pesquisa qualitativa).",
+  },
+};
+const METHOD_ORDER = ["livre", "conteudo", "atd", "fenomenologia"];
+
 function App() {
   const [project, setProject] = useState(null);
   const [index, setIndex] = useState([]); // [{id,name}]
   const [tab, setTab] = useState("codificacao");
+  const [showMethodInfo, setShowMethodInfo] = useState(false);
   const [cmpB, setCmpB] = useState(null);
   async function onPickB(id) {
     if (!id) { setCmpB(null); return; }
@@ -734,13 +767,9 @@ function App() {
     panel: "#f7f9fb", accent: "#1f7a8c", accentSoft: "#e6eff3",
   };
 
-  const TABS = [
-    ["codificacao", "Codificação"],
-    ["categorias", "Categorias"],
-    ["quantitativo", "Quantitativo"],
-    ["confiabilidade", "Confiabilidade"],
-    ["metatexto", "Metatexto"],
-  ];
+  const method = (project && project.method) || "livre";
+  const MET = METHODS[method] || METHODS.livre;
+  const TABS = ["codificacao", "categorias", "quantitativo", "confiabilidade", "metatexto"].map((k) => [k, MET.tabs[k]]);
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", color: C.ink, background: C.paper, height: "88vh", minHeight: 560, display: "flex", flexDirection: "column", borderRadius: 6, overflow: "hidden", border: `1px solid ${C.line}` }}>
@@ -789,6 +818,31 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* método de análise */}
+      <div style={{ padding: "8px 16px", background: "#fbfcfd", borderBottom: `1px solid ${C.line}` }}>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+          <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>Método de análise:</span>
+          <select value={method} onChange={(e) => update({ method: e.target.value })}
+            style={{ fontFamily: "system-ui", fontSize: 12.5, padding: "5px 8px", border: `1px solid ${C.line}`, borderRadius: 4, background: "#fff", fontWeight: 600, color: C.accent }}>
+            {METHOD_ORDER.map((k) => <option key={k} value={k}>{METHODS[k].name}</option>)}
+          </select>
+          <span style={{ fontSize: 11.5, color: C.sub, flex: 1, minWidth: 160 }}>
+            {MET.steps.map((s, i) => s.split(":")[0]).join("  →  ")}
+          </span>
+          <button onClick={() => setShowMethodInfo((v) => !v)} style={{ ...btnStyle(C), fontSize: 11.5, padding: "4px 9px" }}>{showMethodInfo ? "ocultar passos ▾" : "sobre o método ▸"}</button>
+        </div>
+        {showMethodInfo && (
+          <div style={{ marginTop: 8, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 6, padding: "10px 12px" }}>
+            <div style={{ fontSize: 13, color: "#3b4a52", lineHeight: 1.5, marginBottom: 8, textAlign: "justify" }}>{MET.desc}</div>
+            <ol style={{ margin: 0, paddingLeft: 20 }}>
+              {MET.steps.map((s, i) => <li key={i} style={{ fontSize: 12.5, color: "#46555f", lineHeight: 1.5, marginBottom: 2 }}>{s}</li>)}
+            </ol>
+            {MET.ref && <div style={{ marginTop: 8, fontSize: 11, color: C.sub, fontStyle: "italic" }}>{MET.ref}</div>}
+            <div style={{ marginTop: 8, fontSize: 11, color: C.sub }}>As abas abaixo seguem a terminologia deste método; os dados são os mesmos se você trocar de método.</div>
+          </div>
+        )}
+      </div>
 
       {/* tabs */}
       <div style={{ display: "flex", gap: 2, padding: "6px 16px 0", background: C.panel, borderBottom: `1px solid ${C.line}` }}>
