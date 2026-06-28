@@ -121,28 +121,28 @@ function MultiPicker({ label, opts, items, onToggle }) {
   );
 }
 
-// fórmula + referência por teste (para conferência; baseado em Moreira & Rosa,
-// "Pesquisa em Ensino: Métodos Quantitativos", Cap. III; e Siegel, 1956)
+// explicação (reescrita) + fórmula + referência por teste.
+// A referência só aparece quando a própria fonte aponta um autor (Siegel, Kerlinger…).
 const INFO = {
-  describe: { f: "Média:  X̄ = Σ(Xᵢ·nᵢ) / N\nDesvio padrão:  dp = √[ Σ(Xⱼ − X̄)² / N ]\nMediana: ponto central (50% acima, 50% abaixo)\nModa: escore de maior frequência", r: "Moreira & Rosa, Cap. III — tendência central (p. 140) e variabilidade (p. 143)." },
-  ci: { f: "IC(média) = X̄ ± t·(s/√n)\n(amostras grandes: t ≈ 1,96 para 95%; 2,58 para 99%)", r: "Moreira & Rosa, Cap. III — Intervalos de confiança (p. 145–146)." },
-  t1: { f: "t = (X̄ − μ₀) / (s/√n)\ngl = n − 1", r: "Moreira & Rosa, Cap. III — distribuição t de Student (p. 150–151)." },
-  t2: { f: "Student:  t = (X̄₁ − X̄₂) / (σ·√(1/n₁ + 1/n₂))\nσ = √[ (n₁·dp₁² + n₂·dp₂²) / (n₁+n₂−2) ];  gl = n₁+n₂−2\nWelch (usado aqui):  t = (X̄₁ − X̄₂) / √(s₁²/n₁ + s₂²/n₂)", r: "Moreira & Rosa, Cap. III — teste t para duas amostras (p. 151–153)." },
-  tp: { f: "t = d̄ / (s_d/√n),  com d = X₁ − X₂,  gl = n − 1", r: "Moreira & Rosa, Cap. III — teste t (p. 150)." },
-  anova: { f: "F = V_b / V_w\nV_b = Σx_b²/(k−1)   (variância entre grupos)\nV_w = média das variâncias dentro dos grupos\nx_b = média do grupo − média geral", r: "Moreira & Rosa, Cap. III — teste F / ANOVA (p. 172–177)." },
-  anova2: { f: "SQ_total = SQ_A + SQ_B + SQ_AB + SQ_erro\nF = QM_fonte / QM_erro,  com QM = SQ/gl\n(exata para delineamento balanceado)", r: "Moreira & Rosa, Cap. III — análise fatorial da variância (p. 178–182)." },
-  pearson: { f: "r = Σ(xy) / √[ (Σx²)(Σy²) ],  x = X − X̄,  y = Y − Ȳ\nt = r·√[(n−2)/(1−r²)],  gl = n − 2", r: "Moreira & Rosa, Cap. III — correlação produto-momento (p. 156)." },
-  spearman: { f: "ρ = correlação de Pearson sobre os postos\n(sem empates: ρ = 1 − 6·Σd² / [n(n²−1)])", r: "Siegel (1956); cf. Moreira & Rosa, Cap. III." },
-  cronbach: { f: "α = (k/(k−1))·(1 − ΣV_i / V_t)\nk = nº de itens; V_i = variância de cada item; V_t = variância do total", r: "Moreira & Rosa, Cap. III — consistência interna (p. 165–166)." },
-  mw: { f: "U = R₁ − n₁(n₁+1)/2   (R₁ = soma dos postos do grupo 1)\nz = (U − n₁n₂/2) / √[ n₁n₂(N+1)/12 ]  (com correção de empates)", r: "Siegel (1956); cf. Moreira & Rosa, Cap. III — teste U (p. 194)." },
-  wilcoxon: { f: "Postos de |X₁−X₂| (zeros descartados); W = min(ΣW⁺, ΣW⁻)\nz = (W − n(n+1)/4) / √[ n(n+1)(2n+1)/24 ]", r: "Siegel (1956); cf. Moreira & Rosa, Cap. III (p. 189–190)." },
-  chi2: { f: "χ² = Σ (O − E)² / E,  com E = (total da linha × total da coluna)/N\ngl = (linhas − 1)·(colunas − 1)", r: "Moreira & Rosa, Cap. III — teste χ² (p. 193)." },
-  fisher: { f: "p = [ (A+B)!·(C+D)!·(A+C)!·(B+D)! ] / [ N!·A!·B!·C!·D! ]\n(soma das tabelas tão ou menos prováveis → p bicaudal)", r: "Moreira & Rosa, Cap. III — probabilidade exata de Fisher (p. 191–192)." },
-  median: { f: "Dicotomiza cada grupo em > mediana global e ≤ mediana global;\naplica χ² à tabela resultante (gl = nº de grupos − 1)", r: "Moreira & Rosa, Cap. III — teste da Mediana (p. 193)." },
-  ks2: { f: "D = máx | F₁(x) − F₂(x) |   (ECDF das duas amostras)\np por aproximação de Kolmogorov, n_e = n₁n₂/(n₁+n₂)", r: "Siegel (1956); cf. Moreira & Rosa, Cap. III — KS 2 amostras (p. 194)." },
-  ww2: { f: "Combina e ordena as duas amostras; conta sequências (runs) R\nz = (R − μ_R)/σ_R,  μ_R = 2n₁n₂/N + 1", r: "Siegel (1956); cf. Moreira & Rosa, Cap. III — Wald-Wolfowitz (p. 194)." },
-  runs: { f: "Dicotomiza pela mediana; conta sequências (runs) R\nz = (R − μ_R)/σ_R,  μ_R = 2n₁n₂/N + 1", r: "Siegel (1956); cf. Moreira & Rosa, Cap. III — teste do período (p. 189)." },
-  moses: { f: "Span dos postos do grupo-controle (aparando h de cada ponta);\np exata pela distribuição combinatória do span", r: "Siegel (1956); cf. Moreira & Rosa, Cap. III — teste de Moses (p. 194–195)." },
+  describe: { e: "Resumem uma distribuição de escores: as medidas de tendência central (média, mediana, moda) indicam em torno de que valor os dados se concentram; as de variabilidade (desvio padrão, amplitude) indicam o quanto eles se espalham. A média sozinha pode esconder diferenças — daí também olhar a dispersão.", f: "Média:  X̄ = Σ(Xᵢ·nᵢ) / N\nDesvio padrão:  dp = √[ Σ(Xⱼ − X̄)² / N ]\nMediana: ponto central (50% acima, 50% abaixo)\nModa: escore de maior frequência" },
+  ci: { e: "Faixa de valores dentro da qual, com dado grau de confiança (p.ex. 95%), se espera encontrar a média da população. Quanto mais estreita a faixa, mais precisa a estimativa.", f: "IC(média) = X̄ ± t·(s/√n)\n(amostras grandes: t ≈ 1,96 para 95%; 2,58 para 99%)" },
+  t1: { e: "Compara a média de uma amostra com um valor de referência (μ₀). Indicado para amostras pequenas (n<30), supondo escores de uma população normal; verifica se a diferença observada pode ser apenas erro de amostragem.", f: "t = (X̄ − μ₀) / (s/√n)\ngl = n − 1" },
+  t2: { e: "Compara as médias de dois grupos independentes para decidir se a diferença entre eles é real ou fruto do acaso na amostragem. Supõe normalidade; a versão de Welch (usada aqui) não exige variâncias iguais.", f: "Student:  t = (X̄₁ − X̄₂) / (σ·√(1/n₁ + 1/n₂))\nσ = √[ (n₁·dp₁² + n₂·dp₂²) / (n₁+n₂−2) ];  gl = n₁+n₂−2\nWelch (usado aqui):  t = (X̄₁ − X̄₂) / √(s₁²/n₁ + s₂²/n₂)" },
+  tp: { e: "Compara dois escores do mesmo sujeito (ou de pares), por exemplo antes e depois de um tratamento, analisando a média das diferenças. Reduz a influência das diferenças individuais entre os sujeitos.", f: "t = d̄ / (s_d/√n),  com d = X₁ − X₂,  gl = n − 1" },
+  anova: { e: "Generaliza o teste t para três ou mais grupos: compara a variância entre as médias dos grupos com a variância dentro dos grupos (razão F). Indica se há diferença geral, mas não diz qual grupo difere dos demais.", f: "F = V_b / V_w\nV_b = Σx_b²/(k−1)   (variância entre grupos)\nV_w = média das variâncias dentro dos grupos\nx_b = média do grupo − média geral" },
+  anova2: { e: "Analisa ao mesmo tempo o efeito de dois fatores e a interação entre eles sobre a variável dependente. Há interação quando o efeito de um fator depende do nível do outro (no gráfico, as linhas deixam de ser paralelas).", f: "SQ_total = SQ_A + SQ_B + SQ_AB + SQ_erro\nF = QM_fonte / QM_erro,  com QM = SQ/gl\n(exata para delineamento balanceado)", r: "Método conforme Kerlinger (1964)." },
+  pearson: { e: "Mede o grau de associação linear entre duas variáveis, variando de −1 a +1 (0 = sem relação linear). Vale lembrar: correlação, ainda que alta, não implica relação de causa.", f: "r = Σ(xy) / √[ (Σx²)(Σy²) ],  x = X − X̄,  y = Y − Ȳ\nt = r·√[(n−2)/(1−r²)],  gl = n − 2" },
+  spearman: { e: "Versão por postos da correlação: mede associação monotônica entre duas variáveis. Útil para dados ordinais ou quando não se quer supor normalidade.", f: "ρ = correlação de Pearson sobre os postos\n(sem empates: ρ = 1 − 6·Σd² / [n(n²−1)])", r: "Siegel (1956)." },
+  cronbach: { e: "Avalia a consistência interna de um teste ou escala: o quanto os itens medem a mesma coisa. Só faz sentido somar escores de itens se eles forem internamente consistentes. Vai até 1 — quanto mais próximo de 1, melhor.", f: "α = (k/(k−1))·(1 − ΣV_i / V_t)\nk = nº de itens; V_i = variância de cada item; V_t = variância do total", r: "Roteiro de Fernando Lang da Silveira (Instituto de Física, UFRGS)." },
+  mw: { e: "Alternativa não paramétrica ao teste t para dois grupos independentes; trabalha com os postos dos escores, não com seus valores. Indicado para dados ordinais ou quando não se supõe normalidade.", f: "U = R₁ − n₁(n₁+1)/2   (R₁ = soma dos postos do grupo 1)\nz = (U − n₁n₂/2) / √[ n₁n₂(N+1)/12 ]  (com correção de empates)", r: "Siegel (1956, p. 116)." },
+  wilcoxon: { e: "Alternativa não paramétrica para duas amostras relacionadas (pareadas): usa os postos das diferenças entre os pares, dispensando a suposição de normalidade exigida pelo teste t pareado.", f: "Postos de |X₁−X₂| (zeros descartados); W = min(ΣW⁺, ΣW⁻)\nz = (W − n(n+1)/4) / √[ n(n+1)(2n+1)/24 ]", r: "Siegel (1956)." },
+  chi2: { e: "Verifica se duas variáveis categóricas estão associadas, comparando as frequências observadas com as esperadas caso fossem independentes. Funciona até com escalas nominais.", f: "χ² = Σ (O − E)² / E,  com E = (total da linha × total da coluna)/N\ngl = (linhas − 1)·(colunas − 1)", r: "Siegel (1956)." },
+  fisher: { e: "Calcula a probabilidade exata de uma tabela 2×2 com os totais marginais fixos. Indicado quando as amostras são pequenas (frequências esperadas baixas), situação em que o χ² é pouco confiável.", f: "p = [ (A+B)!·(C+D)!·(A+C)!·(B+D)! ] / [ N!·A!·B!·C!·D! ]\n(soma das tabelas tão ou menos prováveis → p bicaudal)", r: "Siegel (1956)." },
+  median: { e: "Verifica se dois ou mais grupos diferem em tendência central, contando quantos casos de cada grupo ficam acima e abaixo da mediana global e aplicando o χ² a essa tabela.", f: "Dicotomiza cada grupo em > mediana global e ≤ mediana global;\naplica χ² à tabela resultante (gl = nº de grupos − 1)", r: "Siegel (1956)." },
+  ks2: { e: "Verifica se duas amostras vêm da mesma distribuição, pela maior distância entre suas distribuições acumuladas. A forma bilateral é sensível a diferenças de qualquer tipo (posição, dispersão, forma).", f: "D = máx | F₁(x) − F₂(x) |   (ECDF das duas amostras)\np por aproximação de Kolmogorov, n_e = n₁n₂/(n₁+n₂)", r: "Siegel (1956)." },
+  ww2: { e: "Testa se duas amostras vêm da mesma população contra a alternativa de que diferem em qualquer aspecto (posição, dispersão, forma). Baseia-se no número de sequências (runs) ao ordenar os dados combinados dos dois grupos.", f: "Combina e ordena as duas amostras; conta sequências (runs) R\nz = (R − μ_R)/σ_R,  μ_R = 2n₁n₂/N + 1", r: "Siegel (1956)." },
+  runs: { e: "Verifica se uma sequência de valores é aleatória, contando as sequências (runs) de valores acima e abaixo da mediana. Poucos ou muitos runs sugerem que a ordem não é casual.", f: "Dicotomiza pela mediana; conta sequências (runs) R\nz = (R − μ_R)/σ_R,  μ_R = 2n₁n₂/N + 1", r: "Siegel (1956)." },
+  moses: { e: "Detecta reações extremas: avalia se um grupo experimental se espalha mais (para os dois lados) que o grupo de controle. Útil quando se espera que uma condição leve alguns sujeitos a um extremo e outros ao extremo oposto.", f: "Span dos postos do grupo-controle (aparando h de cada ponta);\np exata pela distribuição combinatória do span", r: "Siegel (1956)." },
 };
 
 function AnaliseQuantitativa({ active = true }) {
@@ -313,8 +313,9 @@ function AnaliseQuantitativa({ active = true }) {
               <button onClick={() => setShowFormula((v) => !v)} style={{ background: "none", border: "none", color: "#1f7a8c", fontSize: 12, cursor: "pointer", padding: 0, fontWeight: 600 }}>ƒ Fórmula e referência {showFormula ? "▾" : "▸"}</button>
               {showFormula && (
                 <div style={{ marginTop: 6, background: "#f7f9fb", border: "1px solid #e3e9ee", borderRadius: 6, padding: "8px 10px" }}>
-                  <pre style={{ margin: 0, fontFamily: "ui-monospace, monospace", fontSize: 11.5, whiteSpace: "pre-wrap", color: "#34495e", lineHeight: 1.5 }}>{INFO[testKey].f}</pre>
-                  <div style={{ marginTop: 6, fontSize: 11, color: "#7a8b99", fontStyle: "italic" }}>{INFO[testKey].r}</div>
+                  <div style={{ fontSize: 12.5, color: "#46555f", lineHeight: 1.5, marginBottom: 8, textAlign: "justify" }}>{INFO[testKey].e}</div>
+                  <pre style={{ margin: 0, fontFamily: "ui-monospace, monospace", fontSize: 11.5, whiteSpace: "pre-wrap", color: "#34495e", lineHeight: 1.5, background: "#fff", border: "1px solid #eef1f4", borderRadius: 4, padding: "6px 8px" }}>{INFO[testKey].f}</pre>
+                  {INFO[testKey].r && <div style={{ marginTop: 6, fontSize: 11, color: "#7a8b99", fontStyle: "italic" }}>{INFO[testKey].r}</div>}
                 </div>
               )}
             </div>
