@@ -165,7 +165,7 @@ Participante: Eu definiria horários mais claros desde o início e combinaria co
   const metatexts = [
     { id: "m1", title: "Desafios da transição", categoryId: "k1", body: "Os relatos descrevem uma transição inicialmente custosa para o trabalho remoto: problemas técnicos de acesso, a necessidade de construir uma rotina nova, a perda do convívio informal e, mais adiante, a sobrecarga ligada ao tempo de tela. Este é um rascunho de exemplo: substitua por sua própria interpretação, apoiada nos recortes." },
   ];
-  return { id: uid(), name: "Exemplo: entrevista (trabalho remoto)", text, codes, excerpts, categories, metatexts, updated: Date.now() };
+  return { id: uid(), name: "Exemplo: entrevista (trabalho remoto)", method: "conteudo", text, codes, excerpts, categories, metatexts, updated: Date.now() };
 }
 function exampleCodingB() {
   const base = exampleProject();
@@ -185,7 +185,7 @@ function exampleCodingB() {
     mk("b8", "Eram tarefas demais e eu passava o dia inteiro na tela", ["c6"]),          // A usou c6+c1; B só c6
     mk("b9", "Senti muita falta da convivência", ["c3"]),                                 // recorte extra de B
   ];
-  return { id: uid(), name: "Exemplo: codificador B (mesma entrevista)", text, codes, excerpts, categories: [], metatexts: [], updated: Date.now() };
+  return { id: uid(), name: "Exemplo: codificador B (mesma entrevista)", method: "conteudo", text, codes, excerpts, categories: [], metatexts: [], updated: Date.now() };
 }
 const QHELP = [
   { h: "O que é", items: ["Módulo de análise qualitativa de texto. Apoia o ciclo da Análise de Conteúdo (Bardin: codificação > categorização > inferência) e da Análise Textual Discursiva (Moraes e Galiazzi: unitarização > categorização > metatexto)."] },
@@ -730,6 +730,8 @@ function App() {
     const lines = [];
     lines.push("# " + project.name + "\n");
     lines.push("_Método de análise: " + MR.name + "_\n");
+    lines.push("**Passos:** " + MR.steps.map((s) => s.split(":")[0]).join(" → ") + "\n");
+    if (MR.ref) lines.push("_Referência: " + MR.ref + "_\n");
     lines.push("## " + MR.tabs.categorias + "\n");
     project.categories.forEach((cat) => {
       lines.push(`### ${cat.name} (${cat.tipo})`);
