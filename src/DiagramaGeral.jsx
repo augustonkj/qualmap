@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { wrapText, esc, REGION_COLORS, SUITE } from "./lib.js";
+import { wrapText, esc, REGION_COLORS, SUITE, Menu, MenuItem } from "./lib.js";
 
 /*
   Diagrama Geral — mapa conceitual / mental livre, independente das outras abas.
@@ -207,13 +207,21 @@ function DiagramaGeral({ active = true }) {
         <span style={div} />
         <button style={mini} onClick={undo} disabled={!past.length} title="desfazer (Ctrl+Z)">↶</button>
         <button style={mini} onClick={redo} disabled={!future.length} title="refazer (Ctrl+Shift+Z)">↷</button>
-        <button style={mini} onClick={exemplo} title="carregar o exemplo">Exemplo</button>
-        <button style={mini} onClick={limpar} title="apagar tudo (dá para desfazer)">Limpar</button>
         <span style={div} />
-        <button style={prim} onClick={exportSVG}>SVG</button>
-        <button style={mini} onClick={exportPNG}>PNG</button>
-        <button style={mini} onClick={exportJSON}>Salvar JSON</button>
-        <button style={mini} onClick={() => fileRef.current?.click()}>Abrir JSON</button>
+        <Menu label="Exportar" btnStyle={mini} title="exportar a figura">
+          {(close) => (<>
+            <MenuItem onClick={() => { exportSVG(); close(); }}>Figura SVG</MenuItem>
+            <MenuItem onClick={() => { exportPNG(); close(); }}>Figura PNG</MenuItem>
+          </>)}
+        </Menu>
+        <Menu label="Projeto" btnStyle={mini} title="salvar, abrir, exemplo e limpar">
+          {(close) => (<>
+            <MenuItem onClick={() => { exportJSON(); close(); }}>Salvar (.json)</MenuItem>
+            <MenuItem onClick={() => { fileRef.current?.click(); close(); }}>Abrir (.json)</MenuItem>
+            <MenuItem onClick={() => { exemplo(); close(); }}>Carregar exemplo</MenuItem>
+            <MenuItem danger onClick={() => { limpar(); close(); }}>Limpar tudo</MenuItem>
+          </>)}
+        </Menu>
         <input ref={fileRef} type="file" accept="application/json" onChange={importJSON} style={{ display: "none" }} />
         {mode === "connect" && <span style={{ fontSize: 12, color: "#1f7a8c", fontWeight: 600 }}>{connectFrom ? "clique no nó de destino (Esc cancela)" : "clique no nó de origem (Esc cancela)"}</span>}
       </div>

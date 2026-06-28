@@ -219,6 +219,39 @@ function Hint({ text }) {
     </span>
   );
 }
+// Menu suspenso reutilizável. children pode ser um nó ou uma função (close)=>nó.
+function Menu({ label, children, width = 230, btnStyle, align = "left", title }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const k = (e) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("pointerdown", h, true);
+    window.addEventListener("keydown", k);
+    return () => { window.removeEventListener("pointerdown", h, true); window.removeEventListener("keydown", k); };
+  }, [open]);
+  const base = btnStyle || { padding: "6px 10px", fontSize: 13, border: "1px solid #cfd6dd", borderRadius: 6, cursor: "pointer", fontWeight: 600, color: "#34495e" };
+  return (
+    <span ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <button type="button" title={title} onClick={() => setOpen((o) => !o)} style={{ ...base, background: open ? "#e3f1f4" : (base.background || "#fff") }}>{label} <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span></button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", [align]: 0, zIndex: 1000, background: "#fff", border: "1px solid #cfd6dd", borderRadius: 8, boxShadow: "0 10px 28px rgba(0,0,0,.16)", padding: 8, width, display: "flex", flexDirection: "column", gap: 4 }}>
+          {typeof children === "function" ? children(() => setOpen(false)) : children}
+        </div>
+      )}
+    </span>
+  );
+}
+// botão de item dentro de um Menu (linha cheia, alinhado à esquerda)
+function MenuItem({ children, onClick, disabled, danger }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "7px 9px", fontSize: 12.5, border: "none", borderRadius: 5, cursor: disabled ? "default" : "pointer", background: "transparent", color: disabled ? "#b3bcc4" : danger ? "#b3402f" : "#34495e", fontWeight: 500 }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = "#eef3f6"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+      {children}
+    </button>
+  );
+}
 const REGION_COLORS = ["#3a6ea5", "#3f7d54", "#c98a2b", "#7a5ea8", "#c0563f"];
 
 /* contexto de medição (força + largura máx). Atualizado antes de medir. */
@@ -1062,4 +1095,4 @@ function baseState(nodes, edges, twoPanel, ta, tb, sa, sb) {
 
 function setSizeCtx(v) { SIZE_CTX = v; }
 
-export { VW, VH, SNAP_T, setDims, setSizeCtx, SUITE, useModalTrap, C, NODE_TYPES, TYPE_ORDER, MOMENTS, MOMENT_ORDER, NAT_LBL, ESTAB_LBL, KIND_LBL, brandes, parseCSVfull, csvNorm, colIdx, HELP, TOUR, Hint, REGION_COLORS, wrapText, sizeOf, degreeMap, clipToRect, distToSeg, qPoint, esc, approxW, edgeGeometry, arrowHead, barrierBar, estabBadge, scriptGlyph, calcGlyph, sourceLetter, sourceMark, nodeBody, buildInner, legendMetaFor, snapNode, alignNodes, distributeNodes, depths, forceLayout, arrange, declutter, fillLayout, foldBox, unfoldBox, parseCSV, toGraphML, toGEXF, seedVazio, seedDidatico, seedRedeLivre, seedRedeUnica, seedComparativo, seedCadeia, baseState };
+export { VW, VH, SNAP_T, setDims, setSizeCtx, SUITE, useModalTrap, C, NODE_TYPES, TYPE_ORDER, MOMENTS, MOMENT_ORDER, NAT_LBL, ESTAB_LBL, KIND_LBL, brandes, parseCSVfull, csvNorm, colIdx, HELP, TOUR, Hint, Menu, MenuItem, REGION_COLORS, wrapText, sizeOf, degreeMap, clipToRect, distToSeg, qPoint, esc, approxW, edgeGeometry, arrowHead, barrierBar, estabBadge, scriptGlyph, calcGlyph, sourceLetter, sourceMark, nodeBody, buildInner, legendMetaFor, snapNode, alignNodes, distributeNodes, depths, forceLayout, arrange, declutter, fillLayout, foldBox, unfoldBox, parseCSV, toGraphML, toGEXF, seedVazio, seedDidatico, seedRedeLivre, seedRedeUnica, seedComparativo, seedCadeia, baseState };

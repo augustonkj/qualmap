@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
-import { VW, VH, SNAP_T, setDims, setSizeCtx, SUITE, useModalTrap, C, NODE_TYPES, TYPE_ORDER, MOMENTS, MOMENT_ORDER, NAT_LBL, ESTAB_LBL, KIND_LBL, brandes, parseCSVfull, csvNorm, colIdx, HELP, TOUR, Hint, REGION_COLORS, wrapText, sizeOf, degreeMap, clipToRect, distToSeg, qPoint, esc, approxW, edgeGeometry, arrowHead, barrierBar, estabBadge, scriptGlyph, calcGlyph, sourceLetter, sourceMark, nodeBody, buildInner, legendMetaFor, snapNode, alignNodes, distributeNodes, depths, forceLayout, arrange, declutter, fillLayout, foldBox, unfoldBox, parseCSV, toGraphML, toGEXF, seedVazio, seedDidatico, seedRedeLivre, seedRedeUnica, seedComparativo, seedCadeia, baseState } from "./lib.js";
+import { VW, VH, SNAP_T, setDims, setSizeCtx, SUITE, useModalTrap, C, NODE_TYPES, TYPE_ORDER, MOMENTS, MOMENT_ORDER, NAT_LBL, ESTAB_LBL, KIND_LBL, brandes, parseCSVfull, csvNorm, colIdx, HELP, TOUR, Hint, Menu, MenuItem, REGION_COLORS, wrapText, sizeOf, degreeMap, clipToRect, distToSeg, qPoint, esc, approxW, edgeGeometry, arrowHead, barrierBar, estabBadge, scriptGlyph, calcGlyph, sourceLetter, sourceMark, nodeBody, buildInner, legendMetaFor, snapNode, alignNodes, distributeNodes, depths, forceLayout, arrange, declutter, fillLayout, foldBox, unfoldBox, parseCSV, toGraphML, toGEXF, seedVazio, seedDidatico, seedRedeLivre, seedRedeUnica, seedComparativo, seedCadeia, baseState } from "./lib.js";
 
 function EditorTAR({ active = true, viewMode: viewModeProp, setViewMode: setViewModeProp }) {
   const [state, setStateRaw] = useState(seedDidatico);
@@ -682,41 +682,70 @@ table.cent{border-collapse:collapse;width:100%;font-size:12px} table.cent th{tex
           </div>
         )}
         <button style={ui.mini} onClick={() => setShowHelp(true)} title="ajuda: o que o software faz">? Ajuda</button>
-        {hasSaved && <button style={ui.btn("primary")} onClick={carregarSalvo} title="restaurar o último projeto salvo automaticamente neste navegador">Continuar de onde parei</button>}
-        {hasSaved && <button style={ui.mini} onClick={descartarSalvo} title="apagar o projeto salvo automaticamente neste navegador">Descartar salvo</button>}
         <button style={ui.mini} onClick={undo} disabled={!past.length} title="desfazer (Ctrl+Z)">↶</button>
         <button style={ui.mini} onClick={redo} disabled={!future.length} title="refazer (Ctrl+Shift+Z)">↷</button>
         <span style={ui.div} />
-        <span style={{ fontSize: 12, color: "#7a8b99" }}>Organizar:{hint("Acomoda os nós automaticamente: em círculo, force-directed (orgânica) ou em camadas.")}</span>
-        <button style={ui.mini} onClick={() => organizar("rede")} title="círculo">Rede ○</button>
-        <button style={ui.mini} onClick={() => organizar("organica")} title="force-directed">Orgânica ⚛</button>
-        <button style={ui.mini} onClick={() => organizar("vertical")} title="cascata vertical">Vert ↓</button>
-        <button style={ui.mini} onClick={() => organizar("horizontal")} title="cascata horizontal">Horiz →</button>
-        <button style={ui.mini} onClick={desafogar} title="afasta só o que está sobreposto, sem reorganizar tudo">Desafogar ⤧</button>
-        <button style={ui.mini} onClick={preencher} title="desafoga, centraliza e amplia a rede para preencher a área útil da tela">Preencher ⤢</button>
-        <button style={ui.mini} onClick={carregarExemplo} title="carrega um diagrama de exemplo (horta comunitária) para explorar o programa">Exemplo</button>
-        <button style={ui.mini} onClick={limparTudo} title="apaga todos os actantes e associações (dá para desfazer)">Limpar</button>
-        <span style={ui.div} />
-        <label style={ui.chk}><input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Grade</label>
-        <label style={ui.chk}><input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} /> Aderir</label>
-        <select style={{ ...ui.mini, padding: "4px 6px" }} value={gridSize} onChange={(e) => setGridSize(Number(e.target.value))}>{[10, 20, 25, 50].map((g) => (<option key={g} value={g}>{g}px</option>))}</select>
-        <label style={ui.chk}><input type="checkbox" checked={useGuides} onChange={(e) => setUseGuides(e.target.checked)} /> Guias</label>
-        <label style={ui.chk}><input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} /> Força</label>
-        <span style={ui.div} />
-        <button style={ui.mini} onClick={() => setView((v) => ({ ...v, w: v.w * 0.9, h: v.h * 0.9 }))} aria-label="aproximar (zoom)" title="aproximar">＋</button>
-        <button style={ui.mini} onClick={() => setView((v) => ({ ...v, w: v.w * 1.1, h: v.h * 1.1 }))} aria-label="afastar (zoom)" title="afastar">－</button>
-        <button style={ui.mini} onClick={resetView} aria-label="ajustar à tela" title="ajustar">⤢</button>
-        <span style={ui.div} />
-        <button style={ui.btn("primary")} onClick={exportSVG}>SVG</button>
-        <button style={ui.mini} onClick={exportPNG}>PNG</button>
-        <button id="tour-save" style={ui.mini} onClick={exportJSON} title="salva o projeto inteiro (actantes, categorias, associações, relatos) para continuar depois ou compartilhar">Salvar projeto</button>
-        <button style={ui.mini} onClick={() => fileRef.current?.click()} title="abrir um projeto salvo (.json)">Abrir projeto</button>
-        <button style={ui.mini} onClick={exportGraphML}>GraphML</button>
-        <button style={ui.mini} onClick={exportGEXF}>GEXF</button>
-        <button style={ui.mini} onClick={() => csvRef.current?.click()}>Importar CSV</button>
+
+        {viewMode === "diagrama" && (
+          <Menu label="Organizar" title="acomodar os nós automaticamente" btnStyle={ui.mini}>
+            {(close) => (<>
+              <MenuItem onClick={() => { organizar("rede"); close(); }}>Rede ○ (círculo)</MenuItem>
+              <MenuItem onClick={() => { organizar("organica"); close(); }}>Orgânica ⚛ (force-directed)</MenuItem>
+              <MenuItem onClick={() => { organizar("vertical"); close(); }}>Cascata vertical ↓</MenuItem>
+              <MenuItem onClick={() => { organizar("horizontal"); close(); }}>Cascata horizontal →</MenuItem>
+              <MenuItem onClick={() => { desafogar(); close(); }}>Desafogar ⤧ (só sobreposições)</MenuItem>
+              <MenuItem onClick={() => { preencher(); close(); }}>Preencher ⤢ (centraliza e amplia)</MenuItem>
+            </>)}
+          </Menu>
+        )}
+
+        {viewMode === "diagrama" && (
+          <Menu label="Exibição" title="grade, aderência, guias e força" btnStyle={ui.mini} width={210}>
+            <label style={{ ...ui.chk, padding: "5px 6px" }}><input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Grade</label>
+            <label style={{ ...ui.chk, padding: "5px 6px" }}><input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} /> Aderir à grade</label>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 6px", fontSize: 12, color: "#5a6b7a" }}>Tamanho da grade
+              <select style={{ ...ui.mini, padding: "3px 6px" }} value={gridSize} onChange={(e) => setGridSize(Number(e.target.value))}>{[10, 20, 25, 50].map((g) => (<option key={g} value={g}>{g}px</option>))}</select>
+            </div>
+            <label style={{ ...ui.chk, padding: "5px 6px" }}><input type="checkbox" checked={useGuides} onChange={(e) => setUseGuides(e.target.checked)} /> Guias de alinhamento</label>
+            <label style={{ ...ui.chk, padding: "5px 6px" }}><input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} /> Força (nó por grau)</label>
+          </Menu>
+        )}
+
+        {viewMode === "diagrama" && (<>
+          <button style={ui.mini} onClick={() => setView((v) => ({ ...v, w: v.w * 0.9, h: v.h * 0.9 }))} aria-label="aproximar (zoom)" title="aproximar">＋</button>
+          <button style={ui.mini} onClick={() => setView((v) => ({ ...v, w: v.w * 1.1, h: v.h * 1.1 }))} aria-label="afastar (zoom)" title="afastar">－</button>
+          <button style={ui.mini} onClick={resetView} aria-label="ajustar à tela" title="ajustar">⤢</button>
+          <span style={ui.div} />
+        </>)}
+
+        {viewMode === "diagrama" && (
+          <Menu label="Exportar" title="exportar a figura e o grafo" btnStyle={ui.mini}>
+            {(close) => (<>
+              <MenuItem onClick={() => { exportSVG(); close(); }}>Figura SVG</MenuItem>
+              <MenuItem onClick={() => { exportPNG(); close(); }}>Figura PNG</MenuItem>
+              <MenuItem onClick={() => { exportGraphML(); close(); }}>GraphML (Gephi)</MenuItem>
+              <MenuItem onClick={() => { exportGEXF(); close(); }}>GEXF (Gephi)</MenuItem>
+            </>)}
+          </Menu>
+        )}
+
+        <span id="tour-save" style={{ display: "inline-block" }}>
+          <Menu label="Projeto" title="salvar, abrir, exemplo e limpar" btnStyle={ui.mini}>
+            {(close) => (<>
+              {hasSaved && <MenuItem onClick={() => { carregarSalvo(); close(); }}>Continuar de onde parei</MenuItem>}
+              {hasSaved && <MenuItem onClick={() => { descartarSalvo(); close(); }}>Descartar salvo</MenuItem>}
+              <MenuItem onClick={() => { exportJSON(); close(); }}>Salvar projeto (.json)</MenuItem>
+              <MenuItem onClick={() => { fileRef.current?.click(); close(); }}>Abrir projeto (.json)</MenuItem>
+              <MenuItem onClick={() => { csvRef.current?.click(); close(); }}>Importar CSV (associações)</MenuItem>
+              <MenuItem onClick={() => { carregarExemplo(); close(); }}>Carregar exemplo</MenuItem>
+              <MenuItem danger onClick={() => { limparTudo(); close(); }}>Limpar tudo</MenuItem>
+            </>)}
+          </Menu>
+        </span>
+
         <input ref={fileRef} type="file" accept="application/json" onChange={importJSON} style={{ display: "none" }} />
         <input ref={csvRef} type="file" accept=".csv,text/csv,text/plain" onChange={importCSV} style={{ display: "none" }} />
-        {maxStep > 0 && (
+        {viewMode === "diagrama" && maxStep > 0 && (
           <>
             <span style={ui.div} />
             <span style={{ fontSize: 12, color: "#7a8b99" }}>Etapa</span>
