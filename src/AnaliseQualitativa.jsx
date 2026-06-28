@@ -327,6 +327,7 @@ function escapeHTML(s) {
 
 // gera um HTML autocontido (somente leitura) que abre em qualquer navegador
 function buildStandaloneHTML(project) {
+  const MET = METHODS[(project && project.method) || "livre"] || METHODS.livre;
   const codeMap = Object.fromEntries(project.codes.map((c) => [c.id, c]));
   const segs = buildSegments(project.text, project.excerpts);
   const textHTML = segs.map((seg) => {
@@ -352,13 +353,13 @@ function buildStandaloneHTML(project) {
 <body style="font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#2b3a48;background:#ffffff;margin:0">
 <div style="max-width:880px;margin:0 auto;padding:34px 24px">
 <h1 style="margin:0 0 4px">${escapeHTML(project.name)}</h1>
-<p style="font-family:system-ui;color:#888;font-size:13px;margin:0 0 24px">Análise qualitativa · ${project.excerpts.length} recortes · ${project.codes.length} códigos · ${project.categories.length} categorias · exportado em ${stamp}</p>
-<h2 style="border-bottom:1px solid #e3e9ee;padding-bottom:4px">Texto codificado</h2>
+<p style="font-family:system-ui;color:#888;font-size:13px;margin:0 0 24px">${escapeHTML(MET.name)} · ${project.excerpts.length} recortes · ${project.codes.length} códigos · ${project.categories.length} categorias · exportado em ${stamp}</p>
+<h2 style="border-bottom:1px solid #e3e9ee;padding-bottom:4px">Texto (${escapeHTML(MET.tabs.codificacao)})</h2>
 <div style="font-size:16px;line-height:1.9;white-space:pre-wrap;background:#fff;padding:20px;border:1px solid #e3e9ee;border-radius:6px">${textHTML || "<i>(sem texto)</i>"}</div>
 <h2 style="border-bottom:1px solid #e3e9ee;padding-bottom:4px;margin-top:28px">Códigos</h2>
 <ul style="font-family:system-ui;font-size:14px;list-style:none;padding:0">${codeRows || "<li>—</li>"}</ul>
-<h2 style="border-bottom:1px solid #e3e9ee;padding-bottom:4px;margin-top:28px">Categorias</h2>${catBlocks || "<p>—</p>"}
-<h2 style="border-bottom:1px solid #e3e9ee;padding-bottom:4px;margin-top:28px">Metatextos e inferências</h2>${metaBlocks || "<p>—</p>"}
+<h2 style="border-bottom:1px solid #e3e9ee;padding-bottom:4px;margin-top:28px">${escapeHTML(MET.tabs.categorias)}</h2>${catBlocks || "<p>—</p>"}
+<h2 style="border-bottom:1px solid #e3e9ee;padding-bottom:4px;margin-top:28px">${escapeHTML(MET.tabs.metatexto)}</h2>${metaBlocks || "<p>—</p>"}
 </div></body></html>`;
 }
 
@@ -725,9 +726,11 @@ function App() {
     downloadFile(base + ".html", buildStandaloneHTML(project), "text/html;charset=utf-8");
   }
   function exportReport() {
+    const MR = METHODS[(project && project.method) || "livre"] || METHODS.livre;
     const lines = [];
     lines.push("# " + project.name + "\n");
-    lines.push("## Categorias\n");
+    lines.push("_Método de análise: " + MR.name + "_\n");
+    lines.push("## " + MR.tabs.categorias + "\n");
     project.categories.forEach((cat) => {
       lines.push(`### ${cat.name} (${cat.tipo})`);
       if (cat.desc) lines.push(cat.desc);
@@ -740,7 +743,7 @@ function App() {
       lines.push("");
     });
     if (project.metatexts.length) {
-      lines.push("## Metatextos / Inferências\n");
+      lines.push("## " + MR.tabs.metatexto + "\n");
       project.metatexts.forEach((m) => { lines.push(`### ${m.title}`); lines.push(m.body + "\n"); });
     }
     const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
