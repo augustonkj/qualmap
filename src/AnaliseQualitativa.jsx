@@ -166,7 +166,7 @@ Participante: Eu definiria horários mais claros desde o início e combinaria co
   const metatexts = [
     { id: "m1", title: "Desafios da transição", categoryId: "k1", body: "Os relatos descrevem uma transição inicialmente custosa para o trabalho remoto: problemas técnicos de acesso, a necessidade de construir uma rotina nova, a perda do convívio informal e, mais adiante, a sobrecarga ligada ao tempo de tela. Este é um rascunho de exemplo: substitua por sua própria interpretação, apoiada nos recortes." },
   ];
-  return { id: uid(), name: "Exemplo: entrevista (trabalho remoto)", method: "conteudo", text, codes, excerpts, categories, metatexts, updated: Date.now() };
+  return { id: uid(), name: "Exemplo: entrevista (trabalho remoto)", method: "conteudo", isExample: true, text, codes, excerpts, categories, metatexts, updated: Date.now() };
 }
 function exampleCodingB() {
   const base = exampleProject();
@@ -195,7 +195,7 @@ function mkExample(method, name, text, codeDefs, exDefs, catDefs, metaDefs) {
   const excerpts = exDefs.map((d) => mk(d[0], d[1], d[2], d[3] || ""));
   const categories = catDefs.map((d) => ({ id: d[0], name: d[1], tipo: d[2] || "emergente", desc: d[3] || "", codeIds: d[4] }));
   const metatexts = metaDefs.map((d) => ({ id: d[0], title: d[1], categoryId: d[2], body: d[3] }));
-  return { id: uid(), name, method, text, codes, excerpts, categories, metatexts, updated: Date.now() };
+  return { id: uid(), name, method, isExample: true, text, codes, excerpts, categories, metatexts, updated: Date.now() };
 }
 // devolve um exemplo adequado ao método selecionado
 function exampleFor(method) {
@@ -546,7 +546,21 @@ function App() {
     }, 600);
   }, [project]);
 
-  const update = useCallback((patch) => setProject((p) => ({ ...p, ...(typeof patch === "function" ? patch(p) : patch) })), []);
+  const update = useCallback((patch) => setProject((p) => {
+    const np = (typeof patch === "function" ? patch(p) : patch) || {};
+    const merged = { ...p, ...np };
+    if ("text" in np) merged.isExample = false; // material próprio deixa de ser exemplo
+    return merged;
+  }), []);
+  function chooseMethod(m) {
+    if (project && project.isExample) {
+      const ex = exampleFor(m); ex.id = project.id; ex.isExample = true; // troca o exemplo, mesmo "slot"
+      setProject(ex); setIndex((idx) => idx.map((x) => (x.id === ex.id ? { id: ex.id, name: ex.name } : x)));
+      setPending(null); setSelExcerpt(null); setTab("codificacao");
+    } else {
+      update({ method: m });
+    }
+  }
   useEffect(() => {
     SUITE.getQual = async () => {
       let idx = [];
@@ -921,7 +935,7 @@ function App() {
       <div style={{ padding: "8px 16px", background: "#fbfcfd", borderBottom: `1px solid ${C.line}` }}>
         <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
           <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>Método de análise:</span>
-          <select value={method} onChange={(e) => update({ method: e.target.value })}
+          <select value={method} onChange={(e) => chooseMethod(e.target.value)}
             style={{ fontFamily: "system-ui", fontSize: 12.5, padding: "5px 8px", border: `1px solid ${C.line}`, borderRadius: 4, background: "#fff", fontWeight: 600, color: C.accent }}>
             {METHOD_ORDER.map((k) => <option key={k} value={k}>{METHODS[k].name}</option>)}
           </select>
