@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { SUITE, useModalTrap } from "./lib.js";
+import { SUITE, useModalTrap, Menu, MenuItem } from "./lib.js";
 import { EditorTAR } from "./EditorTAR.jsx";
 import { AnaliseQualitativa } from "./AnaliseQualitativa.jsx";
 import { AnaliseQuantitativa } from "./AnaliseQuantitativa.jsx";
@@ -7,10 +7,10 @@ import { DiagramaGeral } from "./DiagramaGeral.jsx";
 
 /* ===== Casca: seletor de ferramentas ===== */
 const TOURQ = [
-  { t: "Bem-vindo ao QualMap", b: "O QualMap reúne quatro janelas: Teoria Ator-Rede, Diagrama, Análise Qualitativa e Análise Quantitativa. Vamos ver cada uma." },
+  { t: "Bem-vindo ao QualMap", b: "O QualMap reúne quatro janelas: Teoria Ator-Rede, Diagrama, Análise Qualitativa e Análise Quantitativa. Tudo começa em branco; cada janela tem um botão Exemplo (no menu Projeto) se você quiser ver um modelo pronto." },
   { t: "Teoria Ator-Rede", b: "Aqui você cadastra os actantes (caixas) e as associações (ligações) da Teoria Ator-Rede em tabelas, com o resumo da rede. Tudo o que você cadastra aparece também no Diagrama TAR.", tool: "tar" },
   { t: "Diagrama", b: "A aba Diagrama tem duas sub-abas: TAR (a rede Ator-Rede, ligada à Teoria Ator-Rede) e Geral (um mapa conceitual livre, independente).", tool: "diag" },
-  { t: "Análise Qualitativa", b: "Aqui você analisa texto: o exemplo já traz uma entrevista codificada. Selecione trechos e aplique códigos, agrupe em categorias e escreva o metatexto. O botão ? Ajuda explica o fluxo.", tool: "qual" },
+  { t: "Análise Qualitativa", b: "Aqui você analisa texto: cole ou abra um texto, selecione trechos e aplique códigos, agrupe em categorias e escreva o metatexto. Começa em branco — use o botão Exemplo se quiser ver um projeto já codificado. O botão ? Ajuda explica o fluxo.", tool: "qual" },
   { t: "Análise Quantitativa", b: "Espaço dedicado aos testes estatísticos, independente das outras abas.", tool: "quant" },
 ];
 export default function App() {
@@ -85,9 +85,14 @@ export default function App() {
         <div style={{ flex: 1 }} />
         <div style={{ flex: 1 }} />
         {msg && <span style={{ fontSize: 11.5, color: "#1f7a8c", marginRight: 4 }}>{msg}</span>}
-        <button onClick={salvarTudo} style={miniBtn} title="salva o trabalho das duas ferramentas num único arquivo">Salvar QualMap</button>
-        <label style={{ ...miniBtn, display: "inline-block" }} title="abrir um projeto do QualMap (.json)">Abrir QualMap<input ref={fileRefAll} type="file" accept=".json,application/json" onChange={abrirTudo} style={{ display: "none" }} /></label>
-        <button onClick={() => setTourQ(0)} style={miniBtn} title="abrir o tutorial das duas ferramentas">Tutorial</button>
+        <Menu label="Arquivo" align="right" width={210} btnStyle={miniBtn} title="salvar/abrir o QualMap inteiro e tutorial">
+          {(close) => (<>
+            <MenuItem onClick={() => { salvarTudo(); close(); }}>Salvar QualMap…</MenuItem>
+            <MenuItem onClick={() => { fileRefAll.current?.click(); close(); }}>Abrir QualMap…</MenuItem>
+            <MenuItem onClick={() => { setTourQ(0); close(); }}>Tutorial</MenuItem>
+          </>)}
+        </Menu>
+        <input ref={fileRefAll} type="file" accept=".json,application/json" onChange={abrirTudo} style={{ display: "none" }} />
       </div>
       {tool === "diag" && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderBottom: "1px solid #eef1f4", background: "#fafbfc", flexShrink: 0 }}>

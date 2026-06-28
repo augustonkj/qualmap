@@ -2,7 +2,7 @@ import React, { useState, useRef, useMemo, useEffect, useCallback } from "react"
 import { VW, VH, SNAP_T, setDims, setSizeCtx, SUITE, useModalTrap, C, NODE_TYPES, TYPE_ORDER, MOMENTS, MOMENT_ORDER, NAT_LBL, ESTAB_LBL, KIND_LBL, brandes, parseCSVfull, csvNorm, colIdx, HELP, TOUR, Hint, Menu, MenuItem, REGION_COLORS, wrapText, sizeOf, degreeMap, clipToRect, distToSeg, qPoint, esc, approxW, edgeGeometry, arrowHead, barrierBar, estabBadge, scriptGlyph, calcGlyph, sourceLetter, sourceMark, nodeBody, buildInner, legendMetaFor, snapNode, alignNodes, distributeNodes, depths, forceLayout, arrange, declutter, fillLayout, foldBox, unfoldBox, parseCSV, toGraphML, toGEXF, seedVazio, seedDidatico, seedRedeLivre, seedRedeUnica, seedComparativo, seedCadeia, baseState } from "./lib.js";
 
 function EditorTAR({ active = true, viewMode: viewModeProp, setViewMode: setViewModeProp }) {
-  const [state, setStateRaw] = useState(seedDidatico);
+  const [state, setStateRaw] = useState(seedVazio);
   const [past, setPast] = useState([]);
   const [future, setFuture] = useState([]);
   const stateRef = useRef(state);
@@ -523,7 +523,7 @@ table.cent{border-collapse:collapse;width:100%;font-size:12px} table.cent th{tex
     return () => window.removeEventListener("keydown", h);
   }, [deleteSelected, undo, redo, state.nodes, active]);
 
-  const LS_KEY = "tar_editor_autosave_v1";
+  const LS_KEY = "tar_editor_autosave_v2";
   const savedPayloadRef = useRef(null);
   const skipFirstSave = useRef(true);
   const storageOkRef = useRef(true);

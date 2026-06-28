@@ -91,7 +91,7 @@ function buildGeralSVG(state, { withBg = true } = {}) {
 function dl(blob, name) { const u = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1500); }
 
 function DiagramaGeral({ active = true }) {
-  const [state, setStateRaw] = useState(seedGeral);
+  const [state, setStateRaw] = useState(() => ({ nodes: [], edges: [] }));
   const [past, setPast] = useState([]); const [future, setFuture] = useState([]);
   const [sel, setSel] = useState(null);       // id de nó
   const [selEdge, setSelEdge] = useState(null);
@@ -114,10 +114,10 @@ function DiagramaGeral({ active = true }) {
 
   // autosave local simples
   useEffect(() => {
-    const t = setTimeout(() => { try { window.localStorage.setItem("qualmap_geral", JSON.stringify(state)); } catch {} }, 600);
+    const t = setTimeout(() => { try { window.localStorage.setItem("qualmap_geral_v2", JSON.stringify(state)); } catch {} }, 600);
     return () => clearTimeout(t);
   }, [state]);
-  useEffect(() => { try { const s = window.localStorage.getItem("qualmap_geral"); if (s) { const o = JSON.parse(s); if (o && Array.isArray(o.nodes)) setStateRaw({ nodes: o.nodes, edges: o.edges || [] }); } } catch {} }, []);
+  useEffect(() => { try { const s = window.localStorage.getItem("qualmap_geral_v2"); if (s) { const o = JSON.parse(s); if (o && Array.isArray(o.nodes)) setStateRaw({ nodes: o.nodes, edges: o.edges || [] }); } } catch {} }, []);
 
   useEffect(() => {
     if (!active) return;

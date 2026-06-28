@@ -23,9 +23,9 @@ const PALETTE = [
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const STORE = {
-  index: "qa:index",
-  active: "qa:active",
-  proj: (id) => "qa:p:" + id,
+  index: "qb:index",
+  active: "qb:active",
+  proj: (id) => "qb:p:" + id,
 };
 
 const STOPWORDS_PT = new Set(("a à às ao aos as o os e é são foi era ser estar este esta isso isto esse essa aquele aquela " +
@@ -396,7 +396,7 @@ function App() {
       let activeId = await loadKey(STORE.active);
       let proj = activeId ? await loadKey(STORE.proj(activeId)) : null;
       if (!proj) {
-        proj = exampleProject();
+        proj = emptyProject("Projeto 1");
         idx = [{ id: proj.id, name: proj.name }];
         await saveKey(STORE.proj(proj.id), proj);
         await saveKey(STORE.index, idx);
