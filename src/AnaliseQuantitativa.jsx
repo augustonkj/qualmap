@@ -110,7 +110,7 @@ function AnaliseQuantitativa({ active = true }) {
   return (
     <div style={T.page}>
       <h2 style={T.h2}>Análise Quantitativa</h2>
-      <p style={T.sub}>Frequências do texto (Análise Qualitativa) e métricas da rede (Codificação TAR). Os números refletem o estado ao abrir esta janela.</p>
+      <p style={T.sub}>Frequências do texto (Análise Qualitativa) e métricas da rede (Codificação TAR) — base para os testes estatísticos. Os números refletem o estado ao abrir esta janela.</p>
       <div style={T.cols}>
 
         {/* ---------- Rede TAR ---------- */}
