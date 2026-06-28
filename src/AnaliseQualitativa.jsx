@@ -187,6 +187,51 @@ function exampleCodingB() {
   ];
   return { id: uid(), name: "Exemplo: codificador B (mesma entrevista)", method: "conteudo", text, codes, excerpts, categories: [], metatexts: [], updated: Date.now() };
 }
+// monta um projeto-exemplo a partir de definições compactas (trechos achados por indexOf)
+function mkExample(method, name, text, codeDefs, exDefs, catDefs, metaDefs) {
+  const codes = codeDefs.map((d, i) => ({ id: d[0], name: d[1], color: PALETTE[i % PALETTE.length], desc: d[2] || "" }));
+  const mk = (id, sub, codeIds, memo = "") => { const start = text.indexOf(sub); return { id, start: start < 0 ? 0 : start, end: start < 0 ? 0 : start + sub.length, text: sub, codeIds, memo }; };
+  const excerpts = exDefs.map((d) => mk(d[0], d[1], d[2], d[3] || ""));
+  const categories = catDefs.map((d) => ({ id: d[0], name: d[1], tipo: d[2] || "emergente", desc: d[3] || "", codeIds: d[4] }));
+  const metatexts = metaDefs.map((d) => ({ id: d[0], title: d[1], categoryId: d[2], body: d[3] }));
+  return { id: uid(), name, method, text, codes, excerpts, categories, metatexts, updated: Date.now() };
+}
+// devolve um exemplo adequado ao método selecionado
+function exampleFor(method) {
+  if (method === "atd") return mkExample("atd", "Exemplo (ATD): aprender ciências",
+    "RELATO — Aprender ciências por investigação\n\nAluno A: No começo eu achava que ciência era decorar fórmulas. Quando começamos a investigar problemas reais, percebi que precisava levantar hipóteses e testá-las. Errar passou a fazer parte do processo, e isso tirou o meu medo de participar.\n\nAluno B: O trabalho em grupo mudou tudo para mim. Discutir com os colegas me fez entender melhor do que ler sozinho. Às vezes a gente discordava, e era justamente aí que eu aprendia.",
+    [["a1", "Ciência como memorização", "visão inicial"], ["a2", "Investigação", "hipóteses e testes"], ["a3", "Erro como aprendizagem"], ["a4", "Interação entre pares"]],
+    [["x1", "ciência era decorar fórmulas", ["a1"]], ["x2", "precisava levantar hipóteses e testá-las", ["a2"]], ["x3", "Errar passou a fazer parte do processo", ["a3"]], ["x4", "Discutir com os colegas me fez entender melhor", ["a4"]], ["x5", "era justamente aí que eu aprendia", ["a3", "a4"]]],
+    [["g1", "Mudança na visão de ciência", "emergente", "de memorizar para investigar", ["a1", "a2"]], ["g2", "Aprender com o outro e com o erro", "emergente", "", ["a3", "a4"]]],
+    [["m1", "Metatexto", "g1", "As unidades reunidas mostram um deslocamento: da ciência como memorização para a ciência como investigação, em que o erro e a interação entre pares passam a ser constitutivos do aprender. (Exemplo — substitua pela sua interpretação.)"]]);
+  if (method === "fenomenologia") return mkExample("fenomenologia", "Exemplo (Fenomenologia): ansiedade na prova",
+    "RELATOS — A vivência da ansiedade antes da prova\n\nSujeito 1: Quando a prova se aproxima, sinto o corpo travar. O coração acelera e parece que o tempo encurta. Mesmo tendo estudado, bate a sensação de que vou esquecer tudo.\n\nSujeito 2: Para mim a ansiedade vem na véspera, à noite. Fico revendo a matéria sem conseguir parar, e o sono não vem. Depois que a prova começa, a tensão diminui.",
+    [["u1", "Reação corporal"], ["u2", "Percepção do tempo"], ["u3", "Medo de esquecer"], ["u4", "Antecipação noturna"], ["u5", "Alívio ao iniciar"]],
+    [["x1", "sinto o corpo travar", ["u1"]], ["x2", "parece que o tempo encurta", ["u2"]], ["x3", "vou esquecer tudo", ["u3"]], ["x4", "a ansiedade vem na véspera, à noite", ["u4"]], ["x5", "Depois que a prova começa, a tensão diminui", ["u5"]]],
+    [["g1", "Corpo e tempo na ansiedade", "emergente", "", ["u1", "u2"]], ["g2", "Antes e durante a prova", "emergente", "", ["u3", "u4", "u5"]]],
+    [["m1", "Síntese", "g1", "A ansiedade antes da prova mostra-se como uma experiência do corpo e do tempo: o corpo se tensiona e o tempo parece encurtar, antecipando um fracasso temido. A vivência concentra-se no 'antes' e se dissolve quando a prova começa. (Exemplo — substitua pela sua síntese.)"]]);
+  if (method === "discurso") return mkExample("discurso", "Exemplo (Discurso): campanha ambiental",
+    "TEXTO — Campanha sobre meio ambiente\n\n\"Cada um de nós é responsável pelo planeta. Pequenas atitudes do dia a dia fazem a diferença: feche a torneira, recicle o lixo, economize energia. O futuro está em suas mãos.\"",
+    [["d1", "Responsabilização individual"], ["d2", "Solução no cotidiano"], ["d3", "Apelo imperativo"]],
+    [["x1", "Cada um de nós é responsável pelo planeta", ["d1"]], ["x2", "Pequenas atitudes do dia a dia fazem a diferença", ["d2"]], ["x3", "O futuro está em suas mãos", ["d3", "d1"]]],
+    [["g1", "Deslocamento da responsabilidade para o indivíduo", "emergente", "a solução é posta no sujeito, não nas estruturas", ["d1", "d2", "d3"]]],
+    [["m1", "Interpretação", "g1", "O texto mobiliza uma formação discursiva que desloca a responsabilidade ambiental para o indivíduo ('cada um', 'suas mãos'), silenciando agentes estruturais (Estado, indústria). As condições de produção — campanhas de consumo consciente — naturalizam a solução individual. (Exemplo — substitua pela sua leitura.)"]]);
+  if (method === "grounded") return mkExample("grounded", "Exemplo (Grounded): adoção de tecnologia",
+    "NOTAS — Adoção de tecnologia por professores\n\nP1: No início eu resistia, achava que ia dar mais trabalho. Comecei a usar quando vi um colega economizando tempo na correção.\n\nP2: O que me convenceu foi o apoio da coordenação e um tempo para testar sem cobrança. Quando senti que dava conta, passei a propor coisas novas.",
+    [["o1", "Resistência inicial"], ["o2", "Influência de pares"], ["o3", "Apoio institucional"], ["o4", "Tempo para experimentar"], ["o5", "Apropriação ativa"]],
+    [["x1", "eu resistia, achava que ia dar mais trabalho", ["o1"]], ["x2", "Comecei a usar quando vi um colega economizando tempo", ["o2"]], ["x3", "o apoio da coordenação", ["o3"]], ["x4", "um tempo para testar sem cobrança", ["o4"]], ["x5", "passei a propor coisas novas", ["o5"]]],
+    [["g1", "Condições que favorecem a adoção", "emergente", "", ["o2", "o3", "o4"]], ["g2", "Da resistência à apropriação", "emergente", "trajetória do professor", ["o1", "o5"]]],
+    [["m1", "Teoria (cod. seletiva)", "g1", "Categoria central: a adoção de tecnologia emerge como um processo gradual e apoiado. A resistência inicial é vencida quando se combinam influência de pares, apoio institucional e tempo para experimentar, levando o professor da resistência à apropriação ativa. (Exemplo — substitua pela sua teorização.)"]]);
+  if (method === "narrativas") return mkExample("narrativas", "Exemplo (Narrativas): como me tornei professora",
+    "NARRATIVA — Como me tornei professora\n\nSempre brinquei de dar aula quando criança, enfileirando bonecas. Na adolescência, uma professora de português me marcou pelo jeito de explicar. Prestei vestibular para Letras meio sem certeza. No estágio, ao ver um aluno entender uma poesia pela primeira vez, soube que era aquilo. Hoje, depois de dez anos, ainda me emociono no primeiro dia de aula.",
+    [["n1", "Origem na infância"], ["n2", "Modelo inspirador"], ["n3", "Escolha incerta"], ["n4", "Momento de virada"], ["n5", "Identidade consolidada"]],
+    [["x1", "brinquei de dar aula quando criança", ["n1"]], ["x2", "uma professora de português me marcou", ["n2"]], ["x3", "Prestei vestibular para Letras meio sem certeza", ["n3"]], ["x4", "ao ver um aluno entender uma poesia pela primeira vez, soube que era aquilo", ["n4"]], ["x5", "ainda me emociono no primeiro dia de aula", ["n5"]]],
+    [["g1", "Enredo de vocação", "emergente", "", ["n1", "n2", "n4"]], ["g2", "Dúvida e confirmação", "emergente", "", ["n3", "n5"]]],
+    [["m1", "Interpretação", "g1", "A narrativa organiza-se como um enredo de vocação: sinais na infância, um modelo inspirador e uma escolha incerta que se confirma num momento de virada (o aluno que compreende a poesia), consolidando a identidade docente. (Exemplo — substitua pela sua interpretação.)"]]);
+  const p = exampleProject(); // conteudo / livre usam a entrevista de trabalho remoto
+  if (method === "livre") { p.method = "livre"; p.name = "Exemplo: entrevista (trabalho remoto)"; }
+  return p;
+}
 const QHELP = [
   { h: "O que é", items: ["Módulo de análise qualitativa de texto. Apoia o ciclo da Análise de Conteúdo (Bardin: codificação > categorização > inferência) e da Análise Textual Discursiva (Moraes e Galiazzi: unitarização > categorização > metatexto)."] },
   { h: "Fluxo geral", items: ["1) Importe (.txt/.docx), cole ou abra um texto. 2) Selecione um trecho e aplique um ou mais códigos. 3) Agrupe os códigos em categorias. 4) Veja o quantitativo (frequências, nuvem de palavras). 5) Escreva o metatexto/inferência. 6) Se houver dois codificadores, confira a concordância na aba Confiabilidade."] },
@@ -535,7 +580,7 @@ function App() {
     setProject(p); setPending(null); setSelExcerpt(null);
   }
   async function loadExample() {
-    const p = exampleProject();
+    const p = exampleFor((project && project.method) || "livre");
     await saveKey(STORE.proj(p.id), p);
     const ni = [...index, { id: p.id, name: p.name }];
     setIndex(ni); await saveKey(STORE.index, ni); await saveKey(STORE.active, p.id);
