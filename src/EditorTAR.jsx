@@ -721,6 +721,7 @@ table.cent{border-collapse:collapse;width:100%;font-size:12px} table.cent th{tex
         {viewMode === "diagrama" && (
           <Menu label="Exportar" title="exportar a figura e o grafo" btnStyle={ui.mini}>
             {(close) => (<>
+              <MenuItem onClick={() => { gerarRelatorio(); close(); }}>Relatório (PDF)</MenuItem>
               <MenuItem onClick={() => { exportSVG(); close(); }}>Figura SVG</MenuItem>
               <MenuItem onClick={() => { exportPNG(); close(); }}>Figura PNG</MenuItem>
               <MenuItem onClick={() => { exportGraphML(); close(); }}>GraphML (Gephi)</MenuItem>

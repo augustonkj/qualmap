@@ -178,6 +178,12 @@ function DiagramaGeral({ active = true }) {
   const setEdgeText = (t) => mut((s) => ({ ...s, edges: s.edges.map((e) => (e.id === selEdge ? { ...e, text: t } : e)) }));
 
   const exportSVG = () => dl(new Blob([buildGeralSVG(state)], { type: "image/svg+xml" }), "diagrama-geral.svg");
+  const exportPDF = () => {
+    const w = window.open("", "_blank"); if (!w) { try { window.alert("Permita pop-ups para gerar o relatório em PDF."); } catch {} return; }
+    const svg = buildGeralSVG(state).replace("<svg ", '<svg style="max-width:100%;height:auto" ');
+    const doc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Diagrama Geral</title><style>@media print{.noprint{display:none!important}}@page{margin:14mm}body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#2b3a48;margin:0}</style></head><body onload="setTimeout(function(){window.print()},300)"><div class="noprint" style="position:sticky;top:0;display:flex;gap:10px;align-items:center;background:#1f7a8c;color:#fff;padding:10px 16px">Relatório pronto. <button onclick="window.print()" style="border:none;background:#fff;color:#1f7a8c;font-weight:700;border-radius:6px;padding:6px 14px;cursor:pointer">Imprimir / Salvar como PDF</button><span style="font-size:12px;opacity:.85">escolha "Salvar como PDF" no destino</span></div><div style="max-width:1000px;margin:0 auto;padding:24px"><h1 style="font-size:20px">Diagrama Geral (mapa conceitual)</h1><p style="color:#888;font-size:13px">${state.nodes.length} nós · ${state.edges.length} ligações</p><div style="border:1px solid #e3e9ee;border-radius:8px;padding:8px">${svg}</div></div></body></html>`;
+    w.document.open(); w.document.write(doc); w.document.close();
+  };
   const exportPNG = () => {
     const svg = buildGeralSVG(state); const img = new Image();
     img.onload = () => { const c = document.createElement("canvas"); c.width = VBW * 2; c.height = VBH * 2; const ctx = c.getContext("2d"); ctx.scale(2, 2); ctx.drawImage(img, 0, 0); c.toBlob((b) => b && dl(b, "diagrama-geral.png")); };
@@ -211,6 +217,7 @@ function DiagramaGeral({ active = true }) {
         <span style={div} />
         <Menu label="Exportar" btnStyle={mini} title="exportar a figura">
           {(close) => (<>
+            <MenuItem onClick={() => { exportPDF(); close(); }}>Relatório (PDF)</MenuItem>
             <MenuItem onClick={() => { exportSVG(); close(); }}>Figura SVG</MenuItem>
             <MenuItem onClick={() => { exportPNG(); close(); }}>Figura PNG</MenuItem>
           </>)}

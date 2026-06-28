@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import * as ST from "./stats.js";
 
 /*
@@ -290,6 +290,20 @@ function AnaliseQuantitativa({ active = true }) {
   const [showPaste, setShowPaste] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [result, setResult] = useState(null);
+  const resultRef = useRef(null);
+
+  const exportPDF = () => {
+    const w = window.open("", "_blank"); if (!w) { try { window.alert("Permita pop-ups para gerar o relatório em PDF."); } catch {} return; }
+    let dataTbl = "<p>Sem dados.</p>";
+    if (data) {
+      const head = data.headers.map((h) => `<th style="text-align:left;border-bottom:1px solid #ccc;padding:3px 8px">${h}</th>`).join("");
+      const body = data.rows.map((r) => "<tr>" + data.headers.map((_, j) => `<td style="padding:2px 8px;border-bottom:1px solid #eee">${(r[j] != null ? String(r[j]) : "")}</td>`).join("") + "</tr>").join("");
+      dataTbl = `<table style="border-collapse:collapse;font-size:13px"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+    const resHTML = result && resultRef.current ? resultRef.current.innerHTML : "<p>Nenhum teste calculado.</p>";
+    const doc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Análise Quantitativa</title><style>@media print{.noprint{display:none!important}}@page{margin:16mm}body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#2b3a48;margin:0}h1{font-size:20px}h2{font-size:15px;border-bottom:1px solid #e3e9ee;padding-bottom:4px;margin-top:24px}</style></head><body onload="setTimeout(function(){window.print()},300)"><div class="noprint" style="position:sticky;top:0;display:flex;gap:10px;align-items:center;background:#1f7a8c;color:#fff;padding:10px 16px">Relatório pronto. <button onclick="window.print()" style="border:none;background:#fff;color:#1f7a8c;font-weight:700;border-radius:6px;padding:6px 14px;cursor:pointer">Imprimir / Salvar como PDF</button><span style="font-size:12px;opacity:.85">escolha "Salvar como PDF" no destino</span></div><div style="max-width:900px;margin:0 auto;padding:24px"><h1>Análise Quantitativa</h1><p style="color:#888;font-size:13px">${data ? data.n + " casos · " + data.headers.length + " variáveis" : "sem dados"}</p><h2>Dados</h2>${dataTbl}<h2>Resultado</h2><div>${resHTML}</div></div></body></html>`;
+    w.document.open(); w.document.write(doc); w.document.close();
+  };
 
   // restaurar / autosave (grade)
   useEffect(() => { try { const s = window.localStorage.getItem(LSK); if (s) { const o = JSON.parse(s); if (o && o.grid && Array.isArray(o.grid.headers)) setGrid(o.grid); } } catch {} }, []);
@@ -414,7 +428,11 @@ function AnaliseQuantitativa({ active = true }) {
 
   return (
     <div style={T.page}>
-      <h2 style={T.h2}>Análise Quantitativa</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <h2 style={T.h2}>Análise Quantitativa</h2>
+        <div style={{ flex: 1 }} />
+        <button style={T.btn} onClick={exportPDF} title="gerar relatório com os dados e o resultado">Relatório PDF</button>
+      </div>
       <p style={T.sub}>Testes estatísticos sobre dados que você cola ou abre aqui. Independente das outras janelas.</p>
       <div style={T.cols}>
 
@@ -506,7 +524,7 @@ function AnaliseQuantitativa({ active = true }) {
         {/* ---- coluna 3: resultado ---- */}
         <div style={{ ...T.card, flex: "1 1 360px", minWidth: 300 }}>
           <div style={T.cardH}>3 · Resultado</div>
-          {!result ? <div style={{ fontSize: 12.5, color: "#9aa7b2" }}>O resultado aparece aqui.</div> : <Result data={result} />}
+          <div ref={resultRef}>{!result ? <div style={{ fontSize: 12.5, color: "#9aa7b2" }}>O resultado aparece aqui.</div> : <Result data={result} />}</div>
         </div>
 
       </div>
