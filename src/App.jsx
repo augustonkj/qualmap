@@ -27,8 +27,11 @@ export default function App() {
   const primaryBtn = { border: "none", background: "#1f7a8c", color: "#fff", borderRadius: 6, padding: "6px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: 600 };
   const fileRefAll = useRef(null);
   const tourQRef = useRef(null);
+  const aboutRef = useRef(null);
+  const [showAbout, setShowAbout] = useState(false);
   const [msg, setMsg] = useState("");
   useModalTrap(tourQ >= 0, tourQRef, finishTourQ);
+  useModalTrap(showAbout, aboutRef, () => setShowAbout(false));
   const salvarTudo = async () => {
     try {
       const tar = SUITE.getTar ? SUITE.getTar() : null;
@@ -93,6 +96,7 @@ export default function App() {
           </>)}
         </Menu>
         <input ref={fileRefAll} type="file" accept=".json,application/json" onChange={abrirTudo} style={{ display: "none" }} />
+        <button onClick={() => setShowAbout(true)} style={miniBtn} title="sobre o QualMap">Sobre</button>
       </div>
       {tool === "diag" && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderBottom: "1px solid #eef1f4", background: "#fafbfc", flexShrink: 0 }}>
@@ -122,6 +126,36 @@ export default function App() {
               <button onClick={finishTourQ} style={miniBtn}>Pular</button>
               {tourQ > 0 && <button onClick={() => setTourQ(tourQ - 1)} style={miniBtn}>Anterior</button>}
               {tourQ < TOURQ.length - 1 ? <button onClick={() => setTourQ(tourQ + 1)} style={primaryBtn}>Próximo</button> : <button onClick={finishTourQ} style={primaryBtn}>Começar</button>}
+            </div>
+          </div>
+        </div>
+      )}
+      {showAbout && (
+        <div role="dialog" aria-modal="true" aria-label="Sobre o QualMap" onClick={() => setShowAbout(false)} style={{ position: "fixed", inset: 0, background: "rgba(20,30,38,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1300 }}>
+          <div ref={aboutRef} onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, maxWidth: 480, width: "100%", boxShadow: "0 12px 40px rgba(0,0,0,.3)", padding: "24px 26px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <svg width="30" height="30" viewBox="0 0 26 26" aria-hidden="true">
+                <circle cx="6" cy="7" r="3" fill="#1f7a8c" /><circle cx="20" cy="6" r="2.4" fill="#7a5ea8" /><circle cx="19" cy="19" r="3" fill="#2e7d4f" /><circle cx="7" cy="18" r="2.2" fill="#b06a1f" />
+                <line x1="6" y1="7" x2="20" y2="6" stroke="#cfd6dd" strokeWidth="1.4" /><line x1="6" y1="7" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" /><line x1="20" y1="6" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" /><line x1="7" y1="18" x2="19" y2="19" stroke="#cfd6dd" strokeWidth="1.4" /><line x1="6" y1="7" x2="7" y2="18" stroke="#cfd6dd" strokeWidth="1.4" />
+              </svg>
+              <div><div style={{ fontWeight: 800, color: "#1f7a8c", fontSize: 20 }}>QualMap</div><div style={{ fontSize: 11.5, color: "#7a8b99" }}>análise quanti-quali e diagramas · versão 9</div></div>
+            </div>
+            <p style={{ margin: "6px 0 12px", fontSize: 13.5, color: "#46555f", lineHeight: 1.55 }}>
+              Ferramenta para pesquisa qualitativa e quantitativa. Reúne quatro janelas que trabalham em conjunto:
+            </p>
+            <ul style={{ margin: "0 0 12px", paddingLeft: 18, fontSize: 13, color: "#46555f", lineHeight: 1.6 }}>
+              <li><strong>Teoria Ator-Rede</strong> — cadastro de actantes e associações com resumo da rede.</li>
+              <li><strong>Diagrama</strong> — rede Ator-Rede (TAR) e mapa conceitual livre (Geral).</li>
+              <li><strong>Análise Qualitativa</strong> — codificação de texto, categorias e metatexto.</li>
+              <li><strong>Análise Quantitativa</strong> — testes estatísticos (descritivas, t, ANOVA, correlação, qui-quadrado, não-paramétricos e mais).</li>
+            </ul>
+            <p style={{ margin: "0 0 16px", fontSize: 12, color: "#7a8b99", lineHeight: 1.5 }}>
+              Funciona offline no navegador; seus dados ficam no seu computador. Use o menu <strong>Arquivo</strong> para salvar e abrir o projeto completo.
+            </p>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <span style={{ fontSize: 11.5, color: "#9aa7b2" }}>Evandro Nakajima</span>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => setShowAbout(false)} style={primaryBtn}>Fechar</button>
             </div>
           </div>
         </div>
