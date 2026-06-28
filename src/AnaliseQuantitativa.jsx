@@ -121,28 +121,138 @@ function MultiPicker({ label, opts, items, onToggle }) {
   );
 }
 
-// explicação (reescrita) + fórmula + referência por teste.
+// ---- mini-construtores de MathML (nativo do navegador, sem dependências) ----
+const mi = (s) => `<mi>${s}</mi>`, mn = (s) => `<mn>${s}</mn>`, mo = (s) => `<mo>${s}</mo>`, mt = (s) => `<mtext>${s}</mtext>`;
+const frac = (a, b) => `<mfrac><mrow>${a}</mrow><mrow>${b}</mrow></mfrac>`;
+const sq = (a) => `<msqrt><mrow>${a}</mrow></msqrt>`;
+const sp = (a, b) => `<msup><mrow>${a}</mrow><mrow>${b}</mrow></msup>`;
+const sb = (a, b) => `<msub><mrow>${a}</mrow><mrow>${b}</mrow></msub>`;
+const ov = (a) => `<mover><mrow>${a}</mrow><mo>¯</mo></mover>`;
+const par = (a) => mo("(") + a + mo(")");
+const M = (b) => `<math xmlns="http://www.w3.org/1998/Math/MathML">${b}</math>`;
+const EQ = mo("="), PL = mo("+"), MI_ = mo("−"), PM = mo("±"), CD = mo("·"), SUM = mo("Σ"), BANG = mo("!");
+const Xb = ov(mi("X")), Yb = ov(mi("Y"));
+const n1 = sb(mi("n"), mn("1")), n2 = sb(mi("n"), mn("2")), X1 = sb(ov(mi("X")), mn("1")), X2 = sb(ov(mi("X")), mn("2"));
+const sq2 = (a) => sp(a, mn("2"));
+
+// explicação (reescrita) + fórmula (MathML) + legenda + referência por teste.
 // A referência só aparece quando a própria fonte aponta um autor (Siegel, Kerlinger…).
 const INFO = {
-  describe: { e: "Resumem uma distribuição de escores: as medidas de tendência central (média, mediana, moda) indicam em torno de que valor os dados se concentram; as de variabilidade (desvio padrão, amplitude) indicam o quanto eles se espalham. A média sozinha pode esconder diferenças — daí também olhar a dispersão.", f: "Média:  X̄ = Σ(Xᵢ·nᵢ) / N\nDesvio padrão:  dp = √[ Σ(Xⱼ − X̄)² / N ]\nMediana: ponto central (50% acima, 50% abaixo)\nModa: escore de maior frequência" },
-  ci: { e: "Faixa de valores dentro da qual, com dado grau de confiança (p.ex. 95%), se espera encontrar a média da população. Quanto mais estreita a faixa, mais precisa a estimativa.", f: "IC(média) = X̄ ± t·(s/√n)\n(amostras grandes: t ≈ 1,96 para 95%; 2,58 para 99%)" },
-  t1: { e: "Compara a média de uma amostra com um valor de referência (μ₀). Indicado para amostras pequenas (n<30), supondo escores de uma população normal; verifica se a diferença observada pode ser apenas erro de amostragem.", f: "t = (X̄ − μ₀) / (s/√n)\ngl = n − 1" },
-  t2: { e: "Compara as médias de dois grupos independentes para decidir se a diferença entre eles é real ou fruto do acaso na amostragem. Supõe normalidade; a versão de Welch (usada aqui) não exige variâncias iguais.", f: "Student:  t = (X̄₁ − X̄₂) / (σ·√(1/n₁ + 1/n₂))\nσ = √[ (n₁·dp₁² + n₂·dp₂²) / (n₁+n₂−2) ];  gl = n₁+n₂−2\nWelch (usado aqui):  t = (X̄₁ − X̄₂) / √(s₁²/n₁ + s₂²/n₂)" },
-  tp: { e: "Compara dois escores do mesmo sujeito (ou de pares), por exemplo antes e depois de um tratamento, analisando a média das diferenças. Reduz a influência das diferenças individuais entre os sujeitos.", f: "t = d̄ / (s_d/√n),  com d = X₁ − X₂,  gl = n − 1" },
-  anova: { e: "Generaliza o teste t para três ou mais grupos: compara a variância entre as médias dos grupos com a variância dentro dos grupos (razão F). Indica se há diferença geral, mas não diz qual grupo difere dos demais.", f: "F = V_b / V_w\nV_b = Σx_b²/(k−1)   (variância entre grupos)\nV_w = média das variâncias dentro dos grupos\nx_b = média do grupo − média geral" },
-  anova2: { e: "Analisa ao mesmo tempo o efeito de dois fatores e a interação entre eles sobre a variável dependente. Há interação quando o efeito de um fator depende do nível do outro (no gráfico, as linhas deixam de ser paralelas).", f: "SQ_total = SQ_A + SQ_B + SQ_AB + SQ_erro\nF = QM_fonte / QM_erro,  com QM = SQ/gl\n(exata para delineamento balanceado)", r: "Método conforme Kerlinger (1964)." },
-  pearson: { e: "Mede o grau de associação linear entre duas variáveis, variando de −1 a +1 (0 = sem relação linear). Vale lembrar: correlação, ainda que alta, não implica relação de causa.", f: "r = Σ(xy) / √[ (Σx²)(Σy²) ],  x = X − X̄,  y = Y − Ȳ\nt = r·√[(n−2)/(1−r²)],  gl = n − 2" },
-  spearman: { e: "Versão por postos da correlação: mede associação monotônica entre duas variáveis. Útil para dados ordinais ou quando não se quer supor normalidade.", f: "ρ = correlação de Pearson sobre os postos\n(sem empates: ρ = 1 − 6·Σd² / [n(n²−1)])", r: "Siegel (1956)." },
-  cronbach: { e: "Avalia a consistência interna de um teste ou escala: o quanto os itens medem a mesma coisa. Só faz sentido somar escores de itens se eles forem internamente consistentes. Vai até 1 — quanto mais próximo de 1, melhor.", f: "α = (k/(k−1))·(1 − ΣV_i / V_t)\nk = nº de itens; V_i = variância de cada item; V_t = variância do total", r: "Roteiro de Fernando Lang da Silveira (Instituto de Física, UFRGS)." },
-  mw: { e: "Alternativa não paramétrica ao teste t para dois grupos independentes; trabalha com os postos dos escores, não com seus valores. Indicado para dados ordinais ou quando não se supõe normalidade.", f: "U = R₁ − n₁(n₁+1)/2   (R₁ = soma dos postos do grupo 1)\nz = (U − n₁n₂/2) / √[ n₁n₂(N+1)/12 ]  (com correção de empates)", r: "Siegel (1956, p. 116)." },
-  wilcoxon: { e: "Alternativa não paramétrica para duas amostras relacionadas (pareadas): usa os postos das diferenças entre os pares, dispensando a suposição de normalidade exigida pelo teste t pareado.", f: "Postos de |X₁−X₂| (zeros descartados); W = min(ΣW⁺, ΣW⁻)\nz = (W − n(n+1)/4) / √[ n(n+1)(2n+1)/24 ]", r: "Siegel (1956)." },
-  chi2: { e: "Verifica se duas variáveis categóricas estão associadas, comparando as frequências observadas com as esperadas caso fossem independentes. Funciona até com escalas nominais.", f: "χ² = Σ (O − E)² / E,  com E = (total da linha × total da coluna)/N\ngl = (linhas − 1)·(colunas − 1)", r: "Siegel (1956)." },
-  fisher: { e: "Calcula a probabilidade exata de uma tabela 2×2 com os totais marginais fixos. Indicado quando as amostras são pequenas (frequências esperadas baixas), situação em que o χ² é pouco confiável.", f: "p = [ (A+B)!·(C+D)!·(A+C)!·(B+D)! ] / [ N!·A!·B!·C!·D! ]\n(soma das tabelas tão ou menos prováveis → p bicaudal)", r: "Siegel (1956)." },
-  median: { e: "Verifica se dois ou mais grupos diferem em tendência central, contando quantos casos de cada grupo ficam acima e abaixo da mediana global e aplicando o χ² a essa tabela.", f: "Dicotomiza cada grupo em > mediana global e ≤ mediana global;\naplica χ² à tabela resultante (gl = nº de grupos − 1)", r: "Siegel (1956)." },
-  ks2: { e: "Verifica se duas amostras vêm da mesma distribuição, pela maior distância entre suas distribuições acumuladas. A forma bilateral é sensível a diferenças de qualquer tipo (posição, dispersão, forma).", f: "D = máx | F₁(x) − F₂(x) |   (ECDF das duas amostras)\np por aproximação de Kolmogorov, n_e = n₁n₂/(n₁+n₂)", r: "Siegel (1956)." },
-  ww2: { e: "Testa se duas amostras vêm da mesma população contra a alternativa de que diferem em qualquer aspecto (posição, dispersão, forma). Baseia-se no número de sequências (runs) ao ordenar os dados combinados dos dois grupos.", f: "Combina e ordena as duas amostras; conta sequências (runs) R\nz = (R − μ_R)/σ_R,  μ_R = 2n₁n₂/N + 1", r: "Siegel (1956)." },
-  runs: { e: "Verifica se uma sequência de valores é aleatória, contando as sequências (runs) de valores acima e abaixo da mediana. Poucos ou muitos runs sugerem que a ordem não é casual.", f: "Dicotomiza pela mediana; conta sequências (runs) R\nz = (R − μ_R)/σ_R,  μ_R = 2n₁n₂/N + 1", r: "Siegel (1956)." },
-  moses: { e: "Detecta reações extremas: avalia se um grupo experimental se espalha mais (para os dois lados) que o grupo de controle. Útil quando se espera que uma condição leve alguns sujeitos a um extremo e outros ao extremo oposto.", f: "Span dos postos do grupo-controle (aparando h de cada ponta);\np exata pela distribuição combinatória do span", r: "Siegel (1956)." },
+  describe: {
+    e: "Resumem uma distribuição de escores: as medidas de tendência central (média, mediana, moda) indicam em torno de que valor os dados se concentram; as de variabilidade (desvio padrão, amplitude) indicam o quanto eles se espalham. A média sozinha pode esconder diferenças — daí também olhar a dispersão.",
+    f: [M(Xb + EQ + frac(SUM + sb(mi("X"), mi("i")) + sb(mi("n"), mi("i")), mi("N"))),
+        M(mt("dp") + EQ + sq(frac(SUM + sq2(par(sb(mi("X"), mi("j")) + MI_ + Xb)), mi("N"))))],
+    leg: "Mediana: ponto central (50% acima, 50% abaixo). Moda: escore de maior frequência.",
+  },
+  ci: {
+    e: "Faixa de valores dentro da qual, com dado grau de confiança (p.ex. 95%), se espera encontrar a média da população. Quanto mais estreita a faixa, mais precisa a estimativa.",
+    f: [M(mt("IC") + EQ + Xb + PM + mi("t") + CD + frac(mi("s"), sq(mi("n"))))],
+    leg: "Amostras grandes: t ≈ 1,96 (95%) ou 2,58 (99%).",
+  },
+  t1: {
+    e: "Compara a média de uma amostra com um valor de referência (μ₀). Indicado para amostras pequenas (n<30), supondo escores de uma população normal; verifica se a diferença observada pode ser apenas erro de amostragem.",
+    f: [M(mi("t") + EQ + frac(Xb + MI_ + sb(mi("μ"), mn("0")), mi("s") + mo("/") + sq(mi("n"))))],
+    leg: "gl = n − 1",
+  },
+  t2: {
+    e: "Compara as médias de dois grupos independentes para decidir se a diferença entre eles é real ou fruto do acaso na amostragem. Supõe normalidade; a versão de Welch (usada aqui) não exige variâncias iguais.",
+    f: [M(mt("Welch:") + mi("t") + EQ + frac(X1 + MI_ + X2, sq(frac(sq2(sb(mi("s"), mn("1"))), n1) + PL + frac(sq2(sb(mi("s"), mn("2"))), n2)))),
+        M(mt("Student:") + mi("t") + EQ + frac(X1 + MI_ + X2, mi("σ") + CD + sq(frac(mn("1"), n1) + PL + frac(mn("1"), n2)))),
+        M(mi("σ") + EQ + sq(frac(n1 + CD + sq2(sb(mi("dp"), mn("1"))) + PL + n2 + CD + sq2(sb(mi("dp"), mn("2"))), n1 + PL + n2 + MI_ + mn("2"))))],
+    leg: "Student: gl = n₁ + n₂ − 2. O QualMap usa a versão de Welch.",
+  },
+  tp: {
+    e: "Compara dois escores do mesmo sujeito (ou de pares), por exemplo antes e depois de um tratamento, analisando a média das diferenças. Reduz a influência das diferenças individuais entre os sujeitos.",
+    f: [M(mi("t") + EQ + frac(ov(mi("d")), sb(mi("s"), mi("d")) + mo("/") + sq(mi("n"))))],
+    leg: "d = X₁ − X₂ (diferença de cada par); gl = n − 1.",
+  },
+  anova: {
+    e: "Generaliza o teste t para três ou mais grupos: compara a variância entre as médias dos grupos com a variância dentro dos grupos (razão F). Indica se há diferença geral, mas não diz qual grupo difere dos demais.",
+    f: [M(mi("F") + EQ + frac(sb(mi("V"), mi("b")), sb(mi("V"), mi("w")))),
+        M(sb(mi("V"), mi("b")) + EQ + frac(SUM + sq2(sb(mi("x"), mi("b"))), mi("k") + MI_ + mn("1")))],
+    leg: "V_w = média das variâncias dentro dos grupos; x_b = média do grupo − média geral; k = nº de grupos.",
+  },
+  anova2: {
+    e: "Analisa ao mesmo tempo o efeito de dois fatores e a interação entre eles sobre a variável dependente. Há interação quando o efeito de um fator depende do nível do outro (no gráfico, as linhas deixam de ser paralelas).",
+    f: [M(sb(mt("SQ"), mt("total")) + EQ + sb(mt("SQ"), mi("A")) + PL + sb(mt("SQ"), mi("B")) + PL + sb(mt("SQ"), mt("AB")) + PL + sb(mt("SQ"), mt("erro"))),
+        M(mi("F") + EQ + frac(sb(mt("QM"), mt("fonte")), sb(mt("QM"), mt("erro"))) + mt("  ,  ") + mt("QM") + EQ + frac(mt("SQ"), mt("gl")))],
+    leg: "Exata para delineamento balanceado.",
+    r: "Método conforme Kerlinger (1964).",
+  },
+  pearson: {
+    e: "Mede o grau de associação linear entre duas variáveis, variando de −1 a +1 (0 = sem relação linear). Vale lembrar: correlação, ainda que alta, não implica relação de causa.",
+    f: [M(mi("r") + EQ + frac(SUM + mi("x") + mi("y"), sq(par(SUM + sq2(mi("x"))) + par(SUM + sq2(mi("y")))))),
+        M(mi("t") + EQ + mi("r") + CD + sq(frac(mi("n") + MI_ + mn("2"), mn("1") + MI_ + sq2(mi("r")))))],
+    leg: "x = X − X̄, y = Y − Ȳ; gl = n − 2.",
+  },
+  spearman: {
+    e: "Versão por postos da correlação: mede associação monotônica entre duas variáveis. Útil para dados ordinais ou quando não se quer supor normalidade.",
+    f: [M(mi("ρ") + EQ + mn("1") + MI_ + frac(mn("6") + CD + SUM + sq2(mi("d")), mi("n") + par(sq2(mi("n")) + MI_ + mn("1"))))],
+    leg: "Sobre os postos (d = diferença de postos). Com empates, usa-se Pearson dos postos.",
+    r: "Siegel (1956).",
+  },
+  cronbach: {
+    e: "Avalia a consistência interna de um teste ou escala: o quanto os itens medem a mesma coisa. Só faz sentido somar escores de itens se eles forem internamente consistentes. Vai até 1 — quanto mais próximo de 1, melhor.",
+    f: [M(mi("α") + EQ + frac(mi("k"), mi("k") + MI_ + mn("1")) + par(mn("1") + MI_ + frac(SUM + sb(mi("V"), mi("i")), sb(mi("V"), mi("t")))))],
+    leg: "k = nº de itens; V_i = variância de cada item; V_t = variância do total.",
+    r: "Roteiro de Fernando Lang da Silveira (Instituto de Física, UFRGS).",
+  },
+  mw: {
+    e: "Alternativa não paramétrica ao teste t para dois grupos independentes; trabalha com os postos dos escores, não com seus valores. Indicado para dados ordinais ou quando não se supõe normalidade.",
+    f: [M(mi("U") + EQ + sb(mi("R"), mn("1")) + MI_ + frac(n1 + par(n1 + PL + mn("1")), mn("2"))),
+        M(mi("z") + EQ + frac(mi("U") + MI_ + frac(n1 + n2, mn("2")), sq(frac(n1 + n2 + par(mi("N") + PL + mn("1")), mn("12")))))],
+    leg: "R₁ = soma dos postos do grupo 1 (com correção de empates).",
+    r: "Siegel (1956, p. 116).",
+  },
+  wilcoxon: {
+    e: "Alternativa não paramétrica para duas amostras relacionadas (pareadas): usa os postos das diferenças entre os pares, dispensando a suposição de normalidade exigida pelo teste t pareado.",
+    f: [M(mi("W") + EQ + mt("mín") + par(sp(mi("W"), mo("+")) + mo(",") + sp(mi("W"), mo("−")))),
+        M(mi("z") + EQ + frac(mi("W") + MI_ + frac(mi("n") + par(mi("n") + PL + mn("1")), mn("4")), sq(frac(mi("n") + par(mi("n") + PL + mn("1")) + par(mn("2") + mi("n") + PL + mn("1")), mn("24")))))],
+    leg: "Postos de |X₁ − X₂|, com os zeros descartados.",
+    r: "Siegel (1956).",
+  },
+  chi2: {
+    e: "Verifica se duas variáveis categóricas estão associadas, comparando as frequências observadas com as esperadas caso fossem independentes. Funciona até com escalas nominais.",
+    f: [M(sp(mi("χ"), mn("2")) + EQ + SUM + frac(sq2(par(mi("O") + MI_ + mi("E"))), mi("E")))],
+    leg: "E = (total da linha × total da coluna) / N; gl = (linhas − 1)·(colunas − 1).",
+    r: "Siegel (1956).",
+  },
+  fisher: {
+    e: "Calcula a probabilidade exata de uma tabela 2×2 com os totais marginais fixos. Indicado quando as amostras são pequenas (frequências esperadas baixas), situação em que o χ² é pouco confiável.",
+    f: [M(mi("p") + EQ + frac(par(mi("A") + PL + mi("B")) + BANG + CD + par(mi("C") + PL + mi("D")) + BANG + CD + par(mi("A") + PL + mi("C")) + BANG + CD + par(mi("B") + PL + mi("D")) + BANG, mi("N") + BANG + CD + mi("A") + BANG + CD + mi("B") + BANG + CD + mi("C") + BANG + CD + mi("D") + BANG))],
+    leg: "Soma das tabelas tão ou menos prováveis → p bicaudal.",
+    r: "Siegel (1956).",
+  },
+  median: {
+    e: "Verifica se dois ou mais grupos diferem em tendência central, contando quantos casos de cada grupo ficam acima e abaixo da mediana global e aplicando o χ² a essa tabela.",
+    f: [M(sp(mi("χ"), mn("2")) + EQ + SUM + frac(sq2(par(mi("O") + MI_ + mi("E"))), mi("E")))],
+    leg: "Tabela: acima vs. ≤ mediana global, por grupo; gl = nº de grupos − 1.",
+    r: "Siegel (1956).",
+  },
+  ks2: {
+    e: "Verifica se duas amostras vêm da mesma distribuição, pela maior distância entre suas distribuições acumuladas. A forma bilateral é sensível a diferenças de qualquer tipo (posição, dispersão, forma).",
+    f: [M(mi("D") + EQ + mt("máx") + mo("|") + sb(mi("F"), mn("1")) + par(mi("x")) + MI_ + sb(mi("F"), mn("2")) + par(mi("x")) + mo("|"))],
+    leg: "F₁, F₂ = distribuições acumuladas (ECDF); p por aproximação de Kolmogorov, n_e = n₁n₂/(n₁+n₂).",
+    r: "Siegel (1956).",
+  },
+  ww2: {
+    e: "Testa se duas amostras vêm da mesma população contra a alternativa de que diferem em qualquer aspecto (posição, dispersão, forma). Baseia-se no número de sequências (runs) ao ordenar os dados combinados dos dois grupos.",
+    f: [M(mi("z") + EQ + frac(mi("R") + MI_ + sb(mi("μ"), mi("R")), sb(mi("σ"), mi("R"))) + mt("  ,  ") + sb(mi("μ"), mi("R")) + EQ + frac(mn("2") + n1 + n2, mi("N")) + PL + mn("1"))],
+    leg: "R = nº de sequências (runs) ao ordenar os dois grupos combinados.",
+    r: "Siegel (1956).",
+  },
+  runs: {
+    e: "Verifica se uma sequência de valores é aleatória, contando as sequências (runs) de valores acima e abaixo da mediana. Poucos ou muitos runs sugerem que a ordem não é casual.",
+    f: [M(mi("z") + EQ + frac(mi("R") + MI_ + sb(mi("μ"), mi("R")), sb(mi("σ"), mi("R"))) + mt("  ,  ") + sb(mi("μ"), mi("R")) + EQ + frac(mn("2") + n1 + n2, mi("N")) + PL + mn("1"))],
+    leg: "R = nº de sequências (runs) acima/abaixo da mediana.",
+    r: "Siegel (1956).",
+  },
+  moses: {
+    e: "Detecta reações extremas: avalia se um grupo experimental se espalha mais (para os dois lados) que o grupo de controle. Útil quando se espera que uma condição leve alguns sujeitos a um extremo e outros ao extremo oposto.",
+    f: [M(sb(mi("s"), mi("h")) + EQ + sb(mt("posto"), mt("máx")) + MI_ + sb(mt("posto"), mt("mín")) + PL + mn("1"))],
+    leg: "Span dos postos do grupo-controle (aparando h de cada ponta); p exata pela distribuição combinatória do span.",
+    r: "Siegel (1956).",
+  },
 };
 
 function AnaliseQuantitativa({ active = true }) {
@@ -314,8 +424,11 @@ function AnaliseQuantitativa({ active = true }) {
               {showFormula && (
                 <div style={{ marginTop: 6, background: "#f7f9fb", border: "1px solid #e3e9ee", borderRadius: 6, padding: "8px 10px" }}>
                   <div style={{ fontSize: 12.5, color: "#46555f", lineHeight: 1.5, marginBottom: 8, textAlign: "justify" }}>{INFO[testKey].e}</div>
-                  <pre style={{ margin: 0, fontFamily: "ui-monospace, monospace", fontSize: 11.5, whiteSpace: "pre-wrap", color: "#34495e", lineHeight: 1.5, background: "#fff", border: "1px solid #eef1f4", borderRadius: 4, padding: "6px 8px" }}>{INFO[testKey].f}</pre>
-                  {INFO[testKey].r && <div style={{ marginTop: 6, fontSize: 11, color: "#7a8b99", fontStyle: "italic" }}>{INFO[testKey].r}</div>}
+                  <div style={{ background: "#fff", border: "1px solid #eef1f4", borderRadius: 4, padding: "8px 10px", overflowX: "auto" }}>
+                    {INFO[testKey].f.map((m, i) => (<div key={i} style={{ fontSize: 18, margin: "6px 0", color: "#2b3a48" }} dangerouslySetInnerHTML={{ __html: m }} />))}
+                  </div>
+                  {INFO[testKey].leg && <div style={{ marginTop: 6, fontSize: 11.5, color: "#5a6b7a", lineHeight: 1.45 }}>{INFO[testKey].leg}</div>}
+                  {INFO[testKey].r && <div style={{ marginTop: 4, fontSize: 11, color: "#7a8b99", fontStyle: "italic" }}>{INFO[testKey].r}</div>}
                 </div>
               )}
             </div>
