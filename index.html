@@ -1,14 +1,207 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>QualMap</title>
-  <meta http-equiv="refresh" content="0; url=QualMap.html">
-  <link rel="canonical" href="QualMap.html">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QualMap — análise quanti-quali e diagramas</title>
+<meta name="description" content="QualMap: ferramenta gratuita e offline para pesquisa qualitativa e quantitativa — diagramas da Teoria Ator-Rede, mapas conceituais, codificação de texto e testes estatísticos.">
+<link rel="canonical" href="https://augustonkj.github.io/qualmap/">
+<style>
+  :root{
+    --teal:#1f7a8c; --teal-d:#176173; --ink:#2b3a48; --sub:#6b7c8a; --line:#e3e9ee;
+    --purple:#7a5ea8; --green:#2e7d4f; --orange:#b06a1f; --bg:#f7fafb;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.6}
+  a{color:var(--teal);text-decoration:none}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+  .btn{display:inline-block;border-radius:8px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer;border:1px solid transparent;transition:transform .08s ease, box-shadow .15s ease}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{background:var(--teal);color:#fff;box-shadow:0 6px 18px rgba(31,122,140,.28)}
+  .btn-primary:hover{background:var(--teal-d)}
+  .btn-ghost{background:#fff;color:var(--teal);border-color:#cfe0e6}
+
+  /* header */
+  header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+  header .wrap{display:flex;align-items:center;gap:12px;height:62px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--teal);font-size:18px}
+  .nav{margin-left:auto;display:flex;align-items:center;gap:18px}
+  .nav a.lnk{color:var(--sub);font-weight:600;font-size:14px}
+  .nav a.lnk:hover{color:var(--ink)}
+  @media(max-width:640px){.nav a.lnk{display:none}}
+
+  /* hero */
+  .hero{background:linear-gradient(160deg,#eef6f8 0%,#f7fafb 60%,#fff 100%);border-bottom:1px solid var(--line)}
+  .hero .wrap{padding:64px 20px 56px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+  @media(max-width:820px){.hero .wrap{grid-template-columns:1fr;gap:28px;padding:44px 20px}}
+  .hero h1{font-size:44px;line-height:1.1;margin:0 0 10px;letter-spacing:-.5px}
+  .hero .tag{color:var(--teal);font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+  .hero p.lead{font-size:18px;color:#3b4a52;margin:0 0 24px;max-width:560px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .hero .note{margin-top:16px;font-size:13px;color:var(--sub)}
+  .heroart{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(20,40,60,.10);padding:18px}
+
+  /* sections */
+  section{padding:56px 0}
+  .sec-h{text-align:center;max-width:620px;margin:0 auto 36px}
+  .sec-h h2{font-size:30px;margin:0 0 8px;letter-spacing:-.3px}
+  .sec-h p{color:var(--sub);font-size:16px;margin:0}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:14px;padding:22px;background:#fff;transition:box-shadow .15s ease,border-color .15s ease}
+  .card:hover{box-shadow:0 10px 30px rgba(20,40,60,.08);border-color:#cfe0e6}
+  .card .ico{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;color:#fff}
+  .card h3{margin:0 0 6px;font-size:18px}
+  .card p{margin:0;color:var(--sub);font-size:14.5px}
+
+  .alt{background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .pills{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:780px;margin:0 auto}
+  .pill{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:14px;font-weight:600;color:#3b4a52}
+
+  .why{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  @media(max-width:760px){.why{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:430px){.why{grid-template-columns:1fr}}
+  .why .item{text-align:center;padding:8px}
+  .why .item .big{font-size:26px}
+  .why .item h4{margin:8px 0 4px;font-size:15px}
+  .why .item p{margin:0;color:var(--sub);font-size:13.5px}
+
+  .final{text-align:center}
+  .final h2{font-size:30px;margin:0 0 10px}
+  .final p{color:var(--sub);margin:0 0 22px}
+
+  footer{background:#13313a;color:#cfe0e6;padding:40px 0;font-size:14px}
+  footer .wrap{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+  @media(max-width:680px){footer .wrap{grid-template-columns:1fr}}
+  footer h4{color:#fff;margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.6px}
+  footer .dev{margin-bottom:10px}
+  footer .dev b{color:#fff}
+  footer a{color:#7fc7d6}
+  .copy{border-top:1px solid rgba(255,255,255,.12);margin-top:26px;padding-top:16px;color:#9fc0c9;font-size:12.5px}
+</style>
 </head>
-<body style="font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#5a6b7a;padding:40px">
-  Abrindo o QualMap… Se não for automático, <a href="QualMap.html">clique aqui</a>.
-  <script>location.replace("QualMap.html");</script>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 26 26" aria-hidden="true">
+        <line x1="6" y1="7" x2="20" y2="6" stroke="#cfd6dd" stroke-width="1.6"/><line x1="6" y1="7" x2="19" y2="19" stroke="#cfd6dd" stroke-width="1.6"/><line x1="20" y1="6" x2="19" y2="19" stroke="#cfd6dd" stroke-width="1.6"/><line x1="7" y1="18" x2="19" y2="19" stroke="#cfd6dd" stroke-width="1.6"/><line x1="6" y1="7" x2="7" y2="18" stroke="#cfd6dd" stroke-width="1.6"/>
+        <circle cx="6" cy="7" r="3.2" fill="#1f7a8c"/><circle cx="20" cy="6" r="2.6" fill="#7a5ea8"/><circle cx="19" cy="19" r="3.2" fill="#2e7d4f"/><circle cx="7" cy="18" r="2.4" fill="#b06a1f"/>
+      </svg>
+      QualMap
+    </div>
+    <nav class="nav">
+      <a class="lnk" href="#janelas">Janelas</a>
+      <a class="lnk" href="#metodos">Métodos</a>
+      <a class="lnk" href="#porque">Por quê</a>
+      <a class="lnk" href="https://github.com/augustonkj/qualmap" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn btn-primary" href="QualMap.html" style="padding:8px 16px;font-size:14px">Abrir o QualMap</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <div class="tag">Análise quanti-quali e diagramas</div>
+      <h1>Pesquisa qualitativa e quantitativa, num só lugar.</h1>
+      <p class="lead">O QualMap reúne diagramas da Teoria Ator-Rede, mapas conceituais, codificação de texto e testes estatísticos — tudo no navegador, sem instalar nada.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="QualMap.html">Abrir o QualMap →</a>
+        <a class="btn btn-ghost" href="#janelas">Conhecer as janelas</a>
+      </div>
+      <div class="note">Gratuito e offline · seus dados ficam no seu computador · nada é enviado para servidores.</div>
+    </div>
+    <div class="heroart" aria-hidden="true">
+      <svg viewBox="0 0 360 240" width="100%" height="auto" font-family="system-ui">
+        <rect x="0" y="0" width="360" height="240" rx="10" fill="#fbfcfd"/>
+        <line x1="90" y1="60" x2="200" y2="48" stroke="#cfd6dd" stroke-width="2"/>
+        <line x1="90" y1="60" x2="150" y2="150" stroke="#cfd6dd" stroke-width="2"/>
+        <line x1="200" y1="48" x2="280" y2="120" stroke="#cfd6dd" stroke-width="2"/>
+        <line x1="150" y1="150" x2="280" y2="120" stroke="#cfd6dd" stroke-width="2"/>
+        <line x1="150" y1="150" x2="250" y2="200" stroke="#cfd6dd" stroke-width="2"/>
+        <g font-size="12" fill="#2b3a48" text-anchor="middle">
+          <rect x="48" y="44" width="84" height="32" rx="6" fill="#c7d8e6" stroke="#34495e"/><text x="90" y="64">Mediador</text>
+          <rect x="160" y="32" width="80" height="32" rx="6" fill="#fff" stroke="#34495e"/><text x="200" y="52">Actante</text>
+          <rect x="108" y="134" width="84" height="32" rx="6" fill="#9bc1d8" stroke="#2f516a"/><text x="150" y="154">OPP</text>
+          <rect x="240" y="104" width="84" height="32" rx="6" fill="#3a4a57" stroke="#27333d"/><text x="282" y="124" fill="#fff">Caixa-preta</text>
+          <rect x="206" y="186" width="88" height="30" rx="6" fill="#fff" stroke="#7a8b99" stroke-dasharray="4 3"/><text x="250" y="205">Silenciado</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section id="janelas">
+  <div class="wrap">
+    <div class="sec-h"><h2>Quatro janelas integradas</h2><p>Cada uma cobre uma etapa da pesquisa; as duas de rede compartilham os dados, e as de análise, o texto.</p></div>
+    <div class="grid">
+      <div class="card"><div class="ico" style="background:#1f7a8c">⬡</div><h3>Teoria Ator-Rede</h3><p>Cadastre actantes e associações em tabelas, com resumo e métricas da rede (grau, intermediação).</p></div>
+      <div class="card"><div class="ico" style="background:#7a5ea8">▦</div><h3>Diagrama</h3><p>Desenhe a rede Ator-Rede (TAR) — momentos da tradução, OPP, caixas-pretas — e também mapas conceituais livres.</p></div>
+      <div class="card"><div class="ico" style="background:#2e7d4f">✎</div><h3>Análise Qualitativa</h3><p>Codifique trechos, agrupe em categorias e escreva a interpretação, em 7 métodos de análise.</p></div>
+      <div class="card"><div class="ico" style="background:#b06a1f">∑</div><h3>Análise Quantitativa</h3><p>Testes estatísticos com fórmula e referência: t, ANOVA, correlação, qui-quadrado, não-paramétricos e mais.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="metodos" class="alt">
+  <div class="wrap">
+    <div class="sec-h"><h2>Métodos de análise qualitativa</h2><p>O QualMap adapta a terminologia, os passos e os exemplos a cada abordagem.</p></div>
+    <div class="pills">
+      <span class="pill">Análise de Conteúdo (Bardin)</span>
+      <span class="pill">Análise Textual Discursiva</span>
+      <span class="pill">Fenomenologia</span>
+      <span class="pill">Análise de Discurso</span>
+      <span class="pill">Teoria Fundamentada</span>
+      <span class="pill">Análise de Narrativas</span>
+      <span class="pill">Análise livre</span>
+    </div>
+    <div class="sec-h" style="margin:40px auto 18px"><h2 style="font-size:24px">…e um pacote de testes estatísticos</h2></div>
+    <div class="pills">
+      <span class="pill">Descritivas</span><span class="pill">Intervalo de confiança</span><span class="pill">t (1 e 2 amostras, pareado)</span>
+      <span class="pill">ANOVA (1 fator e fatorial)</span><span class="pill">Pearson / Spearman</span><span class="pill">Alfa de Cronbach</span>
+      <span class="pill">Qui-quadrado / Fisher</span><span class="pill">Mann-Whitney / Wilcoxon</span><span class="pill">KS · Mediana · Moses</span>
+    </div>
+  </div>
+</section>
+
+<section id="porque">
+  <div class="wrap">
+    <div class="sec-h"><h2>Por que QualMap</h2></div>
+    <div class="why">
+      <div class="item"><div class="big">🔒</div><h4>Privado</h4><p>Os dados ficam no seu computador. Nada vai para servidores.</p></div>
+      <div class="item"><div class="big">📴</div><h4>Offline</h4><p>Funciona no navegador, sem instalação nem internet.</p></div>
+      <div class="item"><div class="big">📄</div><h4>Relatórios em PDF</h4><p>Exporte cada janela com um clique (imprimir → salvar PDF).</p></div>
+      <div class="item"><div class="big">🎓</div><h4>Livre e acadêmico</h4><p>Software livre para uso acadêmico e educacional.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap final">
+    <h2>Comece agora</h2>
+    <p>Abre direto no navegador — cada janela já vem com um exemplo pronto.</p>
+    <a class="btn btn-primary" href="QualMap.html">Abrir o QualMap →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <h4>QualMap</h4>
+      <p>Ambiente para pesquisa qualitativa e quantitativa: Teoria Ator-Rede, diagramas, análise de texto e testes estatísticos.</p>
+      <p><a href="QualMap.html">Abrir o aplicativo</a> · <a href="https://github.com/augustonkj/qualmap" target="_blank" rel="noopener">Código no GitHub</a></p>
+    </div>
+    <div>
+      <h4>Desenvolvedores</h4>
+      <div class="dev"><b>Antonio Augusto Ignacio</b><br>Doutorando em Educação em Ciências e Educação Matemática (UNIOESTE).</div>
+      <div class="dev"><b>Evandro Alves Nakajima</b><br>Professor Adjunto da UTFPR, Câmpus Santa Helena.</div>
+    </div>
+  </div>
+  <div class="wrap"><div class="copy">© 2026 QualMap. Software livre para uso acadêmico e educacional.</div></div>
+</footer>
+
 </body>
 </html>
