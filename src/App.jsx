@@ -77,7 +77,7 @@ export default function App() {
           </svg>
           <div style={{ lineHeight: 1.05 }}>
             <div style={{ fontWeight: 800, color: "#1f7a8c", fontSize: 17, letterSpacing: 0.2 }}>QualMap</div>
-            <div style={{ fontSize: 10.5, color: "#7a8b99" }}>análise quanti-quali e diagramas</div>
+            <div style={{ fontSize: 10.5, color: "#7a8b99" }}>análises qualitativas, quantitativas e diagramas</div>
           </div>
         </div>
         <div style={{ display: "flex", border: "1px solid #cfd6dd", borderRadius: 6, overflow: "hidden", marginLeft: 6 }}>
@@ -147,7 +147,7 @@ export default function App() {
               </svg>
               <div>
                 <div style={{ fontWeight: 800, color: "#1f7a8c", fontSize: 22, letterSpacing: 0.2 }}>QualMap</div>
-                <div style={{ fontSize: 12, color: "#7a8b99" }}>análise quanti-quali e diagramas · versão 9</div>
+                <div style={{ fontSize: 12, color: "#7a8b99" }}>análises qualitativas, quantitativas e diagramas · versão 9</div>
               </div>
               <div style={{ flex: 1 }} />
               <button onClick={() => setShowAbout(false)} aria-label="Fechar" style={{ ...miniBtn, padding: "4px 10px", lineHeight: 1 }}>✕</button>
