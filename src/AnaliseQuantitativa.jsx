@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, CartesianGrid, Customized, LabelList } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, CartesianGrid, Customized, LabelList, LineChart, Line, AreaChart, Area, Legend } from "recharts";
 import * as ST from "./stats.js";
 
 const CHART_COLORS = ["#1f7a8c", "#7a5ea8", "#2e7d4f", "#b06a1f", "#c0392b", "#16a085"];
@@ -352,14 +352,27 @@ function AnaliseQuantitativa({ active = true }) {
   const [chartColor, setChartColor] = useState("#1f7a8c");
   const [chartBins, setChartBins] = useState(8);
   const [chartTitle, setChartTitle] = useState("");
-  const [chartH, setChartH] = useState(200);
+  const [chartH, setChartH] = useState(220);
+  const [chartW, setChartW] = useState(null); // null = largura total
+  const [chartType, setChartType] = useState("");
   const [xLabel, setXLabel] = useState("");
   const [yLabel, setYLabel] = useState("");
   const [showGrid, setShowGrid] = useState(false);
   const [showValues, setShowValues] = useState(false);
   const [showSig, setShowSig] = useState(true);
+  const [showLegend, setShowLegend] = useState(true);
   const [chartOpts, setChartOpts] = useState(false);
-  useEffect(() => { setChartTitle(""); setXLabel(""); setYLabel(""); }, [result]); // volta ao padrão ao recalcular
+  useEffect(() => { setChartTitle(""); setXLabel(""); setYLabel(""); setChartType(""); }, [result]); // volta ao padrão ao recalcular
+
+  // arrastar para redimensionar (alça própria, confiável entre navegadores)
+  const startResize = (e) => {
+    e.preventDefault();
+    const el = chartRef.current; if (!el) return;
+    const r = el.getBoundingClientRect(); const sx = e.clientX, sy = e.clientY, sw = r.width, sh = r.height;
+    const move = (ev) => { setChartW(Math.max(260, Math.round(sw + (ev.clientX - sx)))); setChartH(Math.max(160, Math.round(sh + (ev.clientY - sy)))); };
+    const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+  };
 
   const pValue = result && result.res && Number.isFinite(result.res.p) ? result.res.p : null;
   const stars = (p) => (p < 0.001 ? "***" : p < 0.01 ? "**" : p < 0.05 ? "*" : "n.s.");
@@ -528,22 +541,47 @@ function AnaliseQuantitativa({ active = true }) {
     const ylab = yLabel ? { value: yLabel, angle: -90, position: "insideLeft", style: { fontSize: 11, fill: "#5a6b7a" } } : undefined;
     const sig = <Customized component={SigAnno} />;
     const margin = { top: mTop, right: 10, left: yLabel ? 8 : 0, bottom: xLabel ? 16 : 2 };
+    const vlab = (key, dec) => showValues && <LabelList dataKey={key} position="top" formatter={dec != null ? (v) => Number(v).toFixed(dec) : undefined} style={{ fontSize: 10, fill: "#5a6b7a" }} />;
+    const xtit = (dk, type) => <XAxis dataKey={dk} type={type} tick={{ fontSize: 10 }} label={xlab} />;
+    const ytit = (extra) => <YAxis tick={{ fontSize: 10 }} label={ylab} {...(extra || {})} />;
+    const pick = (types) => (chartType && types.some((t) => t[0] === chartType) ? chartType : types[0][0]);
     try {
       if (["describe", "ci", "t1", "runs"].includes(k)) {
         const name = vars.num || (vars.items && vars.items[0]) || numCols[0]; if (!name) return null;
         const h = histogram(ST.toNums(col(name)), chartBins); if (!h.length) return null;
-        return { kind: "hist", def: "Distribuição — " + name, el: <BarChart data={h} margin={margin}>{grid}<XAxis dataKey="label" tick={{ fontSize: 10 }} label={xlab} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} label={ylab} /><Tooltip />{sig}<Bar dataKey="n" name="freq." fill={chartColor}>{showValues && <LabelList dataKey="n" position="top" style={{ fontSize: 10, fill: "#5a6b7a" }} />}</Bar></BarChart> };
+        const types = [["barras", "Histograma (barras)"], ["poligono", "Polígono de frequência"], ["area", "Área"]]; const t = pick(types);
+        let el;
+        if (t === "poligono") el = <LineChart data={h} margin={margin}>{grid}{xtit("label")}{ytit({ allowDecimals: false })}<Tooltip />{sig}<Line type="monotone" dataKey="n" name="freq." stroke={chartColor} strokeWidth={2} dot>{vlab("n")}</Line></LineChart>;
+        else if (t === "area") el = <AreaChart data={h} margin={margin}>{grid}{xtit("label")}{ytit({ allowDecimals: false })}<Tooltip />{sig}<Area type="monotone" dataKey="n" name="freq." stroke={chartColor} fill={chartColor} fillOpacity={0.35}>{vlab("n")}</Area></AreaChart>;
+        else el = <BarChart data={h} margin={margin}>{grid}{xtit("label")}{ytit({ allowDecimals: false })}<Tooltip />{sig}<Bar dataKey="n" name="freq." fill={chartColor}>{vlab("n")}</Bar></BarChart>;
+        return { kind: "hist", def: "Distribuição — " + name, types, el };
       }
-      const scat = (xn, yn) => { const X = ST.toNums(col(xn)), Y = ST.toNums(col(yn)); const n = Math.min(X.length, Y.length); const pts = Array.from({ length: n }, (_, i) => ({ x: X[i], y: Y[i] })); return <ScatterChart margin={margin}>{grid || <CartesianGrid stroke="#eef1f4" />}<XAxis type="number" dataKey="x" name={xn} tick={{ fontSize: 10 }} label={xlab} /><YAxis type="number" dataKey="y" name={yn} tick={{ fontSize: 10 }} label={ylab} /><Tooltip cursor={{ strokeDasharray: "3 3" }} />{sig}<Scatter data={pts} fill={chartColor} /></ScatterChart>; };
-      if (k === "pearson" || k === "spearman") return { kind: "scatter", def: "Dispersão — " + vars.num + " × " + vars.num2, el: scat(vars.num, vars.num2) };
-      if (k === "tp" || k === "wilcoxon") return { kind: "scatter", def: "Antes × Depois", el: scat(vars.num, vars.num2) };
-      const meansBar = (rows) => <BarChart data={rows} margin={margin}>{grid}<XAxis dataKey="name" tick={{ fontSize: 10 }} label={xlab} /><YAxis tick={{ fontSize: 10 }} label={ylab} /><Tooltip />{sig}<Bar dataKey="média" fill={chartColor}>{showValues && <LabelList dataKey="média" position="top" formatter={(v) => Number(v).toFixed(1)} style={{ fontSize: 10, fill: "#5a6b7a" }} />}</Bar></BarChart>;
-      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) return { kind: "bars", def: "Médias por grupo — " + vars.num, el: meansBar(groupMeans(vars.num, vars.group)) };
-      if (k === "anova2") return { kind: "bars", def: "Médias por " + vars.groupA, el: meansBar(groupMeans(vars.num, vars.groupA)) };
+      if (k === "pearson" || k === "spearman" || k === "tp" || k === "wilcoxon") {
+        const xn = vars.num, yn = vars.num2; const X = ST.toNums(col(xn)), Y = ST.toNums(col(yn)); const n = Math.min(X.length, Y.length);
+        const pts = Array.from({ length: n }, (_, i) => ({ x: X[i], y: Y[i] }));
+        const types = [["pontos", "Dispersão (pontos)"], ["linha", "Linha"]]; const t = pick(types);
+        const def = (k === "tp" || k === "wilcoxon") ? "Antes × Depois" : "Dispersão — " + xn + " × " + yn;
+        let el;
+        if (t === "linha") { const ord = [...pts].sort((a, b) => a.x - b.x); el = <LineChart data={ord} margin={margin}>{grid || <CartesianGrid stroke="#eef1f4" />}<XAxis dataKey="x" type="number" tick={{ fontSize: 10 }} label={xlab} />{ytit()}<Tooltip />{sig}<Line type="monotone" dataKey="y" stroke={chartColor} strokeWidth={2} dot /></LineChart>; }
+        else el = <ScatterChart margin={margin}>{grid || <CartesianGrid stroke="#eef1f4" />}<XAxis type="number" dataKey="x" name={xn} tick={{ fontSize: 10 }} label={xlab} /><YAxis type="number" dataKey="y" name={yn} tick={{ fontSize: 10 }} label={ylab} /><Tooltip cursor={{ strokeDasharray: "3 3" }} />{sig}<Scatter data={pts} fill={chartColor} /></ScatterChart>;
+        return { kind: "scatter", def, types, el };
+      }
+      const meansChart = (rows) => {
+        const types = [["barras", "Barras"], ["horizontais", "Barras horizontais"], ["linha", "Linha"]]; const t = pick(types);
+        let el;
+        if (t === "horizontais") el = <BarChart data={rows} layout="vertical" margin={{ ...margin, left: 24 }}>{grid}<XAxis type="number" tick={{ fontSize: 10 }} label={xlab} /><YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={70} label={ylab} /><Tooltip />{sig}<Bar dataKey="média" fill={chartColor}>{vlab("média", 1)}</Bar></BarChart>;
+        else if (t === "linha") el = <LineChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Line type="monotone" dataKey="média" stroke={chartColor} strokeWidth={2} dot>{vlab("média", 1)}</Line></LineChart>;
+        else el = <BarChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Bar dataKey="média" fill={chartColor}>{vlab("média", 1)}</Bar></BarChart>;
+        return { types, el };
+      };
+      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) { const m = meansChart(groupMeans(vars.num, vars.group)); return { kind: "bars", def: "Médias por grupo — " + vars.num, types: m.types, el: m.el }; }
+      if (k === "anova2") { const m = meansChart(groupMeans(vars.num, vars.groupA)); return { kind: "bars", def: "Médias por " + vars.groupA, types: m.types, el: m.el }; }
       if (k === "chi2" || k === "fisher") {
         const { r1, r2, tbl } = contingency(vars.cat1, vars.cat2);
         const rows = r1.map((rn, i) => { const o = { name: rn }; r2.forEach((cn, j) => (o[cn] = tbl[i][j])); return o; });
-        return { kind: "contingency", def: "Frequências — " + vars.cat1 + " × " + vars.cat2, el: <BarChart data={rows} margin={margin}>{grid}<XAxis dataKey="name" tick={{ fontSize: 10 }} label={xlab} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} label={ylab} /><Tooltip />{sig}{r2.map((cn, j) => <Bar key={cn} dataKey={cn} fill={CHART_COLORS[j % CHART_COLORS.length]}>{showValues && <LabelList dataKey={cn} position="top" style={{ fontSize: 9, fill: "#5a6b7a" }} />}</Bar>)}</BarChart> };
+        const types = [["agrupadas", "Barras agrupadas"], ["empilhadas", "Barras empilhadas"]]; const t = pick(types);
+        const el = <BarChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit({ allowDecimals: false })}<Tooltip />{showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}{sig}{r2.map((cn, j) => <Bar key={cn} dataKey={cn} stackId={t === "empilhadas" ? "a" : undefined} fill={CHART_COLORS[j % CHART_COLORS.length]}>{showValues && <LabelList dataKey={cn} position={t === "empilhadas" ? "center" : "top"} style={{ fontSize: 9, fill: t === "empilhadas" ? "#fff" : "#5a6b7a" }} />}</Bar>)}</BarChart>;
+        return { kind: "contingency", def: "Frequências — " + vars.cat1 + " × " + vars.cat2, types, el };
       }
     } catch (e) { return null; }
     return null;
@@ -557,6 +595,7 @@ function AnaliseQuantitativa({ active = true }) {
       <div style={{ marginTop: 12 }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
           <input value={chartTitle} onChange={(e) => setChartTitle(e.target.value)} placeholder={spec.def} title="título do gráfico" style={{ flex: "1 1 140px", minWidth: 110, fontSize: 11.5, padding: "4px 7px", border: "1px solid #cfd6dd", borderRadius: 5 }} />
+          {spec.types && spec.types.length > 1 && <select value={chartType || spec.types[0][0]} onChange={(e) => setChartType(e.target.value)} title="tipo de gráfico" style={ctrl}>{spec.types.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}
           {spec.kind !== "contingency" && <input type="color" value={chartColor} onChange={(e) => setChartColor(e.target.value)} title="cor" style={{ width: 26, height: 24, padding: 0, border: "1px solid #cfd6dd", borderRadius: 5, background: "none", cursor: "pointer" }} />}
           {spec.kind === "hist" && <select value={chartBins} onChange={(e) => setChartBins(Number(e.target.value))} title="nº de classes" style={ctrl}>{[5, 8, 10, 15, 20].map((b) => <option key={b} value={b}>{b} classes</option>)}</select>}
           <button onClick={() => setChartOpts((v) => !v)} style={{ ...ctrl, fontWeight: 600 }} title="mais opções">⚙ {chartOpts ? "▾" : "▸"}</button>
@@ -567,17 +606,23 @@ function AnaliseQuantitativa({ active = true }) {
           <div style={{ background: "#f7f9fb", border: "1px solid #e3e9ee", borderRadius: 6, padding: "8px 10px", marginBottom: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <label style={{ ...chk, display: "block" }}>Rótulo do eixo X<input value={xLabel} onChange={(e) => setXLabel(e.target.value)} style={inp} /></label>
             <label style={{ ...chk, display: "block" }}>Rótulo do eixo Y<input value={yLabel} onChange={(e) => setYLabel(e.target.value)} style={inp} /></label>
-            <label style={{ ...chk, display: "block" }}>Altura<select value={chartH} onChange={(e) => setChartH(Number(e.target.value))} style={{ ...ctrl, width: "100%" }}>{[160, 200, 260, 320, 400].map((hh) => <option key={hh} value={hh}>{hh}px</option>)}</select></label>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }}>
+            <label style={{ ...chk, display: "block" }}>Largura (px)<input type="number" min="260" value={chartW || ""} placeholder="auto (total)" onChange={(e) => setChartW(e.target.value ? Number(e.target.value) : null)} style={inp} /></label>
+            <label style={{ ...chk, display: "block" }}>Altura (px)<input type="number" min="140" value={chartH} onChange={(e) => setChartH(Number(e.target.value) || 220)} style={inp} /></label>
+            <div style={{ gridColumn: "1 / -1", display: "flex", gap: 16, flexWrap: "wrap" }}>
               <label style={chk}><input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Grade</label>
               <label style={chk}><input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} /> Valores</label>
               <label style={chk}><input type="checkbox" checked={showSig} onChange={(e) => setShowSig(e.target.checked)} /> Significância (∗)</label>
+              {spec.kind === "contingency" && <label style={chk}><input type="checkbox" checked={showLegend} onChange={(e) => setShowLegend(e.target.checked)} /> Legenda</label>}
+              <button onClick={() => { setChartW(null); setChartH(220); }} style={{ ...ctrl, marginLeft: "auto" }}>tamanho padrão</button>
             </div>
           </div>
         )}
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "#5a6b7a", marginBottom: 4 }}>{chartTitle || spec.def}</div>
-        <div ref={chartRef} style={{ width: "100%", height: chartH, minHeight: 140, resize: "vertical", overflow: "hidden", background: "#fff", border: "1px dashed #e3e9ee", borderRadius: 4 }}><ResponsiveContainer width="100%" height="100%">{spec.el}</ResponsiveContainer></div>
-        <div style={{ fontSize: 10.5, color: "#9aa7b2", marginTop: 3 }}>arraste o canto inferior para redimensionar · ⚙ para mais opções</div>
+        <div style={{ position: "relative", width: chartW ? chartW : "100%", maxWidth: "100%", display: "inline-block" }}>
+          <div ref={chartRef} style={{ width: "100%", height: chartH, minHeight: 140, background: "#fff", border: "1px dashed #e3e9ee", borderRadius: 4 }}><ResponsiveContainer width="100%" height="100%">{spec.el}</ResponsiveContainer></div>
+          <div onPointerDown={startResize} title="arraste para redimensionar" style={{ position: "absolute", right: 0, bottom: 0, width: 18, height: 18, cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, #9aa7b2 50%, #9aa7b2 60%, transparent 60%, transparent 72%, #9aa7b2 72%, #9aa7b2 82%, transparent 82%)" }} />
+        </div>
+        <div style={{ fontSize: 10.5, color: "#9aa7b2", marginTop: 3 }}>arraste o canto inferior direito para redimensionar · ⚙ para mais opções (tipo, eixos, tamanho em px…)</div>
       </div>
     );
   };
@@ -702,10 +747,15 @@ function AnaliseQuantitativa({ active = true }) {
         <div style={{ ...T.card, flex: "1 1 360px", minWidth: 300 }}>
           <div style={T.cardH}>3 · Resultado</div>
           <div ref={resultRef}>{!result ? <div style={{ fontSize: 12.5, color: "#9aa7b2" }}>O resultado aparece aqui.</div> : <Result data={result} />}</div>
-          {renderChart()}
         </div>
 
       </div>
+
+      {/* ---- gráfico (largura total, editável e redimensionável) ---- */}
+      {result && chartSpec() && (<div style={{ ...T.card, marginTop: 16 }}>
+        <div style={T.cardH}>Gráfico</div>
+        {renderChart()}
+      </div>)}
     </div>
   );
 }
