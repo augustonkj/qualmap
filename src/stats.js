@@ -64,6 +64,23 @@ export function betai(a, b, x) {
 export function tTwoTailP(t, df) { if (df <= 0) return NaN; return betai(df / 2, 0.5, df / (df + t * t)); }
 export function chi2SF(x, df) { if (x <= 0) return 1; return 1 - gammp(df / 2, x / 2); }
 export function fSF(f, d1, d2) { if (f <= 0) return 1; return 1 - betai(d1 / 2, d2 / 2, d1 * f / (d1 * f + d2)); }
+// ---- distribuição da amplitude studentizada (para Tukey HSD) ----
+function dnorm(z) { return Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI); }
+// P(amplitude de k normais padrão ≤ w) por Simpson
+function prange(w, k) {
+  if (w <= 0) return 0; const lo = -8, hi = 8, n = 200, h = (hi - lo) / n; let sum = 0;
+  for (let i = 0; i <= n; i++) { const u = lo + i * h; const v = dnorm(u) * Math.pow(Math.max(0, normalCDF(u) - normalCDF(u - w)), k - 1); sum += ((i === 0 || i === n) ? 1 : (i % 2 ? 4 : 2)) * v; }
+  return Math.min(1, Math.max(0, k * sum * h / 3));
+}
+// P(Q ≤ q) da amplitude studentizada com k grupos e df graus de liberdade
+export function ptukey(q, k, df) {
+  if (q <= 0) return 0; if (k < 2) return NaN;
+  if (df > 2000) return prange(q, k);
+  const lnc = (df / 2) * Math.log(df) - (df / 2 - 1) * Math.log(2) - lgamma(df / 2);
+  const lo = 1e-4, hi = Math.max(3, 1 + 10 / Math.sqrt(df)), n = 200, h = (hi - lo) / n; let sum = 0;
+  for (let i = 0; i <= n; i++) { const s = lo + i * h; const fs = Math.exp(lnc + (df - 1) * Math.log(s) - df * s * s / 2); const v = prange(q * s, k) * fs; sum += ((i === 0 || i === n) ? 1 : (i % 2 ? 4 : 2)) * v; }
+  return Math.min(1, Math.max(0, sum * h / 3));
+}
 // t crítico bicaudal para um nível de confiança
 export function tCrit(df, conf) {
   const alpha = 1 - conf; let lo = 0, hi = 1e6;
