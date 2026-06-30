@@ -67,22 +67,6 @@
   .why .item h4{margin:8px 0 4px;font-size:15px}
   .why .item p{margin:0;color:var(--sub);font-size:13.5px}
 
-  /* mapa do software (diagrama de funcionalidades) */
-  .map .root{display:flex;justify-content:center}
-  .map .rootnode{background:var(--teal);color:#fff;font-weight:800;font-size:16px;padding:10px 24px;border-radius:999px;box-shadow:0 6px 18px rgba(31,122,140,.28)}
-  .map .rail{height:16px;border-left:2px solid var(--line);width:0;margin:0 auto}
-  .branches{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:0}
-  @media(max-width:860px){.branches{grid-template-columns:repeat(2,1fr)}.map .rail{display:none}}
-  @media(max-width:480px){.branches{grid-template-columns:1fr}}
-  .branch{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;position:relative}
-  .branch::before{content:"";position:absolute;top:-16px;left:50%;width:2px;height:16px;background:var(--line)}
-  @media(max-width:860px){.branch::before{display:none}}
-  .branch .bh{padding:11px 14px;color:#fff;font-weight:700;display:flex;align-items:center;gap:8px;font-size:15px;background:var(--bc)}
-  .branch ul{list-style:none;margin:0;padding:12px 14px;display:flex;flex-direction:column;gap:7px}
-  .branch li{font-size:13px;color:#3b4a52;padding-left:16px;position:relative;line-height:1.4}
-  .branch li::before{content:"";position:absolute;left:0;top:6px;width:7px;height:7px;border-radius:2px;background:var(--bc)}
-  .branch.t{--bc:#1f7a8c}.branch.p{--bc:#7a5ea8}.branch.g{--bc:#2e7d4f}.branch.o{--bc:#b06a1f}
-
   .final{text-align:center}
   .final h2{font-size:30px;margin:0 0 10px}
   .final p{color:var(--sub);margin:0 0 22px}
@@ -110,7 +94,6 @@
     </div>
     <nav class="nav">
       <a class="lnk" href="#janelas">Janelas</a>
-      <a class="lnk" href="#mapa">Mapa</a>
       <a class="lnk" href="#metodos">Métodos</a>
       <a class="lnk" href="#porque">Por quê</a>
       <a class="lnk" href="https://github.com/augustonkj/qualmap" target="_blank" rel="noopener">GitHub</a>
@@ -159,57 +142,6 @@
       <div class="card"><div class="ico" style="background:#7a5ea8">▦</div><h3>Diagrama</h3><p>Desenhe a rede Ator-Rede (TAR) — momentos da tradução, OPP, caixas-pretas — e também mapas conceituais livres.</p></div>
       <div class="card"><div class="ico" style="background:#2e7d4f">✎</div><h3>Análise Qualitativa</h3><p>Codifique trechos, agrupe em categorias e escreva a interpretação, em 7 métodos de análise.</p></div>
       <div class="card"><div class="ico" style="background:#b06a1f">∑</div><h3>Análise Quantitativa</h3><p>Testes estatísticos com fórmula e referência: t, ANOVA, correlação, qui-quadrado, não-paramétricos e mais.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="mapa" style="border-top:1px solid var(--line)">
-  <div class="wrap map">
-    <div class="sec-h"><h2>Mapa do software</h2><p>O corpo do QualMap e todas as suas funcionalidades, de uma olhada.</p></div>
-    <div class="root"><div class="rootnode">QualMap</div></div>
-    <div class="rail"></div>
-    <div class="branches">
-      <div class="branch t">
-        <div class="bh">⬡ Teoria Ator-Rede</div>
-        <ul>
-          <li>Cadastro de actantes e associações em tabelas</li>
-          <li>Tipos: mediador, intermediário, OPP, caixa-preta, silenciado</li>
-          <li>Resumo e métricas de rede (grau, intermediação)</li>
-          <li>Compartilha dados com o Diagrama TAR</li>
-          <li>Relatório PDF</li>
-        </ul>
-      </div>
-      <div class="branch p">
-        <div class="bh">▦ Diagrama</div>
-        <ul>
-          <li>Diagrama TAR: momentos da tradução, OPP, caixas-pretas</li>
-          <li>Mapa conceitual livre (Geral)</li>
-          <li>Cores e estilos editáveis · zoom</li>
-          <li>Layout por força (nó por grau)</li>
-          <li>Exportar PNG/SVG · Relatório PDF</li>
-        </ul>
-      </div>
-      <div class="branch g">
-        <div class="bh">✎ Análise Qualitativa</div>
-        <ul>
-          <li>7 métodos: Conteúdo (Bardin), ATD, Fenomenologia, Discurso, Teoria Fundamentada, Narrativas, Livre</li>
-          <li>Codificação de trechos · categorias · metatexto</li>
-          <li>Terminologia, passos e exemplos por método</li>
-          <li>Cores por código · confiabilidade</li>
-          <li>Relatório PDF</li>
-        </ul>
-      </div>
-      <div class="branch o">
-        <div class="bh">∑ Análise Quantitativa</div>
-        <ul>
-          <li>20+ testes: t, ANOVA (1 fator e fatorial), correlações, qui²/Fisher, não-paramétricos, Cronbach…</li>
-          <li>Pressupostos: Shapiro-Wilk + Levene, com recomendação</li>
-          <li>Tamanho de efeito (d, η²/ω², r, V de Cramér) com interpretação</li>
-          <li>Pós-hoc Welch/Bonferroni ou Tukey HSD</li>
-          <li>Gráficos editáveis: barras, boxplot, dispersão, linha… com significância</li>
-          <li>Fórmula (MathML) · exportar PNG/SVG · Relatório PDF</li>
-        </ul>
-      </div>
     </div>
   </div>
 </section>
