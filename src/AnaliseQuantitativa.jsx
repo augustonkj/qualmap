@@ -348,6 +348,23 @@ function AnaliseQuantitativa({ active = true }) {
   const [result, setResult] = useState(null);
   const [pendingCalc, setPendingCalc] = useState(false);
   const resultRef = useRef(null);
+  const chartRef = useRef(null);
+  const [chartColor, setChartColor] = useState("#1f7a8c");
+  const [chartBins, setChartBins] = useState(8);
+  const [chartTitle, setChartTitle] = useState("");
+  useEffect(() => { setChartTitle(""); }, [result]); // volta ao título padrão ao recalcular
+
+  const dlFile = (blob, name) => { const u = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1500); };
+  const saveChart = (fmt) => {
+    const svg = chartRef.current && chartRef.current.querySelector("svg"); if (!svg) return;
+    const r = svg.getBoundingClientRect(); const w = Math.round(r.width) || 320, h = Math.round(r.height) || 200;
+    const clone = svg.cloneNode(true); clone.setAttribute("xmlns", "http://www.w3.org/2000/svg"); clone.setAttribute("width", w); clone.setAttribute("height", h);
+    const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect"); bg.setAttribute("x", 0); bg.setAttribute("y", 0); bg.setAttribute("width", w); bg.setAttribute("height", h); bg.setAttribute("fill", "#ffffff"); clone.insertBefore(bg, clone.firstChild);
+    const str = new XMLSerializer().serializeToString(clone);
+    if (fmt === "svg") { dlFile(new Blob([str], { type: "image/svg+xml" }), "grafico.svg"); return; }
+    const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); c.width = w * 2; c.height = h * 2; const ctx = c.getContext("2d"); ctx.scale(2, 2); ctx.drawImage(img, 0, 0); c.toBlob((b) => b && dlFile(b, "grafico.png")); };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(str)));
+  };
 
   const exportPDF = () => {
     const w = window.open("", "_blank"); if (!w) { try { window.alert("Permita pop-ups para gerar o relatório em PDF."); } catch {} return; }
@@ -485,34 +502,46 @@ function AnaliseQuantitativa({ active = true }) {
 
   // ---------- gráfico apropriado ao teste ----------
   const groupMeans = (numName, grpName) => { const { order, map } = groupsOf(numName, grpName); return order.map((g) => ({ name: g, média: map[g].reduce((a, b) => a + b, 0) / map[g].length })); };
-  const scatterBox = (title, xn, yn) => { const X = ST.toNums(col(xn)), Y = ST.toNums(col(yn)); const n = Math.min(X.length, Y.length); const pts = Array.from({ length: n }, (_, i) => ({ x: X[i], y: Y[i] })); return chartBox(title, <ScatterChart><CartesianGrid stroke="#eef1f4" /><XAxis type="number" dataKey="x" name={xn} tick={{ fontSize: 10 }} /><YAxis type="number" dataKey="y" name={yn} tick={{ fontSize: 10 }} /><Tooltip cursor={{ strokeDasharray: "3 3" }} /><Scatter data={pts} fill="#7a5ea8" /></ScatterChart>); };
-  const chartBox = (title, el) => (<div style={{ marginTop: 12 }}><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "#5a6b7a", marginBottom: 4 }}>{title}</div><div style={{ width: "100%", height: 180 }}><ResponsiveContainer width="100%" height="100%">{el}</ResponsiveContainer></div></div>);
-  const renderChart = () => {
+  // monta a definição do gráfico (tipo + título padrão + elemento) conforme o teste
+  const chartSpec = () => {
     if (!result || !data) return null;
     const k = result.key;
     try {
       if (["describe", "ci", "t1", "runs"].includes(k)) {
         const name = vars.num || (vars.items && vars.items[0]) || numCols[0]; if (!name) return null;
-        const h = histogram(ST.toNums(col(name)), 8); if (!h.length) return null;
-        return chartBox("Distribuição — " + name, <BarChart data={h}><XAxis dataKey="label" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="n" name="freq." fill="#1f7a8c" /></BarChart>);
+        const h = histogram(ST.toNums(col(name)), chartBins); if (!h.length) return null;
+        return { kind: "hist", def: "Distribuição — " + name, el: <BarChart data={h}><XAxis dataKey="label" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="n" name="freq." fill={chartColor} /></BarChart> };
       }
-      if (k === "pearson" || k === "spearman") return scatterBox("Dispersão — " + vars.num + " × " + vars.num2, vars.num, vars.num2);
-      if (k === "tp" || k === "wilcoxon") return scatterBox("Antes × Depois", vars.num, vars.num2);
-      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) {
-        const rows = groupMeans(vars.num, vars.group);
-        return chartBox("Médias por grupo — " + vars.num, <BarChart data={rows}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="média">{rows.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar></BarChart>);
-      }
-      if (k === "anova2") {
-        const rows = groupMeans(vars.num, vars.groupA);
-        return chartBox("Médias por " + vars.groupA, <BarChart data={rows}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="média">{rows.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar></BarChart>);
-      }
+      const scat = (xn, yn) => { const X = ST.toNums(col(xn)), Y = ST.toNums(col(yn)); const n = Math.min(X.length, Y.length); const pts = Array.from({ length: n }, (_, i) => ({ x: X[i], y: Y[i] })); return <ScatterChart><CartesianGrid stroke="#eef1f4" /><XAxis type="number" dataKey="x" name={xn} tick={{ fontSize: 10 }} /><YAxis type="number" dataKey="y" name={yn} tick={{ fontSize: 10 }} /><Tooltip cursor={{ strokeDasharray: "3 3" }} /><Scatter data={pts} fill={chartColor} /></ScatterChart>; };
+      if (k === "pearson" || k === "spearman") return { kind: "scatter", def: "Dispersão — " + vars.num + " × " + vars.num2, el: scat(vars.num, vars.num2) };
+      if (k === "tp" || k === "wilcoxon") return { kind: "scatter", def: "Antes × Depois", el: scat(vars.num, vars.num2) };
+      const meansBar = (rows) => <BarChart data={rows}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="média" fill={chartColor} /></BarChart>;
+      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) return { kind: "bars", def: "Médias por grupo — " + vars.num, el: meansBar(groupMeans(vars.num, vars.group)) };
+      if (k === "anova2") return { kind: "bars", def: "Médias por " + vars.groupA, el: meansBar(groupMeans(vars.num, vars.groupA)) };
       if (k === "chi2" || k === "fisher") {
         const { r1, r2, tbl } = contingency(vars.cat1, vars.cat2);
         const rows = r1.map((rn, i) => { const o = { name: rn }; r2.forEach((cn, j) => (o[cn] = tbl[i][j])); return o; });
-        return chartBox("Frequências — " + vars.cat1 + " × " + vars.cat2, <BarChart data={rows}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip />{r2.map((cn, j) => <Bar key={cn} dataKey={cn} fill={CHART_COLORS[j % CHART_COLORS.length]} />)}</BarChart>);
+        return { kind: "contingency", def: "Frequências — " + vars.cat1 + " × " + vars.cat2, el: <BarChart data={rows}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip />{r2.map((cn, j) => <Bar key={cn} dataKey={cn} fill={CHART_COLORS[j % CHART_COLORS.length]} />)}</BarChart> };
       }
     } catch (e) { return null; }
     return null;
+  };
+  const renderChart = () => {
+    const spec = chartSpec(); if (!spec) return null;
+    const ctrl = { fontSize: 11.5, padding: "3px 7px", border: "1px solid #cfd6dd", borderRadius: 5, background: "#fff", color: "#34495e", cursor: "pointer" };
+    return (
+      <div style={{ marginTop: 12 }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+          <input value={chartTitle} onChange={(e) => setChartTitle(e.target.value)} placeholder={spec.def} title="título do gráfico" style={{ flex: "1 1 150px", minWidth: 120, fontSize: 11.5, padding: "4px 7px", border: "1px solid #cfd6dd", borderRadius: 5 }} />
+          {spec.kind !== "contingency" && <input type="color" value={chartColor} onChange={(e) => setChartColor(e.target.value)} title="cor" style={{ width: 26, height: 24, padding: 0, border: "1px solid #cfd6dd", borderRadius: 5, background: "none", cursor: "pointer" }} />}
+          {spec.kind === "hist" && <select value={chartBins} onChange={(e) => setChartBins(Number(e.target.value))} title="nº de classes" style={ctrl}>{[5, 8, 10, 15, 20].map((b) => <option key={b} value={b}>{b} classes</option>)}</select>}
+          <button onClick={() => saveChart("png")} style={ctrl} title="salvar como PNG">PNG</button>
+          <button onClick={() => saveChart("svg")} style={ctrl} title="salvar como SVG">SVG</button>
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "#5a6b7a", marginBottom: 4 }}>{chartTitle || spec.def}</div>
+        <div ref={chartRef} style={{ width: "100%", height: 200, background: "#fff" }}><ResponsiveContainer width="100%" height="100%">{spec.el}</ResponsiveContainer></div>
+      </div>
+    );
   };
 
   // ---------- seletores de variáveis por tipo ----------
