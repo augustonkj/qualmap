@@ -1,5 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, CartesianGrid, Customized, LabelList, LineChart, Line, AreaChart, Area, Legend, ZAxis } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, CartesianGrid, Customized, LabelList, LineChart, Line, AreaChart, Area, Legend, ZAxis, ErrorBar } from "recharts";
+
+// estatísticas de boxplot (quartis + bigodes a 1,5·IQR)
+function boxStats(a) {
+  const v = [...a].sort((x, y) => x - y); const n = v.length; if (!n) return null;
+  const q = (p) => { const pos = (n - 1) * p, b = Math.floor(pos), r = pos - b; return v[b + 1] !== undefined ? v[b] + r * (v[b + 1] - v[b]) : v[b]; };
+  const q1 = q(0.25), med = q(0.5), q3 = q(0.75), iqr = q3 - q1;
+  const lo = Math.min(...v.filter((x) => x >= q1 - 1.5 * iqr)); const hi = Math.max(...v.filter((x) => x <= q3 + 1.5 * iqr));
+  return { q1, med, q3, lo, hi, min: v[0], max: v[n - 1] };
+}
 import * as ST from "./stats.js";
 
 const CHART_COLORS = ["#1f7a8c", "#7a5ea8", "#2e7d4f", "#b06a1f", "#c0392b", "#16a085"];
@@ -376,6 +385,8 @@ function AnaliseQuantitativa({ active = true }) {
   const [sigTick, setSigTick] = useState(5);
   const [sigFont, setSigFont] = useState(14);
   const [barColors, setBarColors] = useState({}); // cor por grupo/barra
+  const [showError, setShowError] = useState(false);
+  const [errType, setErrType] = useState("ci"); // ci | sd | se
   const [posthocMethod, setPosthocMethod] = useState("welch");
   // detalhes finos do gráfico
   const [fontTick, setFontTick] = useState(10);
@@ -636,7 +647,10 @@ function AnaliseQuantitativa({ active = true }) {
   }, [pendingCalc, data, vars]);
 
   // ---------- gráfico apropriado ao teste ----------
-  const groupMeans = (numName, grpName) => { const { order, map } = groupsOf(numName, grpName); return order.map((g) => ({ name: g, média: map[g].reduce((a, b) => a + b, 0) / map[g].length })); };
+  const groupMeans = (numName, grpName) => {
+    const { order, map } = groupsOf(numName, grpName);
+    return order.map((g) => { const a = map[g], n = a.length, m = a.reduce((x, y) => x + y, 0) / n; const v = n > 1 ? a.reduce((s, x) => s + (x - m) ** 2, 0) / (n - 1) : 0; const sd = Math.sqrt(v), se = sd / Math.sqrt(n); return { name: g, "média": m, sd, n, se, ci: n > 1 ? ST.tCrit(n - 1, 0.95) * se : 0 }; });
+  };
   // monta a definição do gráfico (tipo + título padrão + elemento) conforme o teste
   const chartSpec = () => {
     if (!result || !data) return null;
@@ -677,17 +691,35 @@ function AnaliseQuantitativa({ active = true }) {
         else el = <ScatterChart margin={margin}>{grid || <CartesianGrid stroke={gridColor} />}<XAxis type="number" dataKey="x" name={xn} tick={{ fontSize: fontTick, fill: axisColor }} label={xlab} /><YAxis type="number" dataKey="y" name={yn} tick={{ fontSize: fontTick, fill: axisColor }} domain={yDom} allowDataOverflow={yMin !== "" || yMax !== ""} label={ylab} /><ZAxis range={[pointSize, pointSize]} /><Tooltip cursor={{ strokeDasharray: "3 3" }} />{sig}<Scatter data={pts} fill={chartColor} /></ScatterChart>;
         return { kind: "scatter", def, types, el };
       }
-      const meansChart = (rows) => {
-        const types = [["barras", "Barras"], ["horizontais", "Barras horizontais"], ["linha", "Linha"]]; const t = pick(types);
-        let el;
+      const meansChart = (rows, raw) => {
+        const types = [["barras", "Barras"], ["horizontais", "Barras horizontais"], ["linha", "Linha"], ["boxplot", "Boxplot"]]; const t = pick(types);
+        const rowsE = rows.map((r) => ({ ...r, err: errType === "sd" ? r.sd : errType === "se" ? r.se : r.ci }));
         const cells = rows.map((r, i) => <Cell key={i} fill={barColors[r.name] || chartColor} />);
-        if (t === "horizontais") el = <BarChart data={rows} layout="vertical" margin={{ ...margin, left: 24 }}>{grid}<XAxis type="number" tick={{ fontSize: fontTick, fill: axisColor }} label={xlab} /><YAxis type="category" dataKey="name" tick={{ fontSize: fontTick, fill: axisColor }} width={70} label={ylab} /><Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{cells}{vlab("média")}</Bar></BarChart>;
-        else if (t === "linha") el = <LineChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Line type="monotone" dataKey="média" stroke={chartColor} strokeWidth={lineW} dot>{vlab("média")}</Line></LineChart>;
-        else el = <BarChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{cells}{vlab("média")}</Bar></BarChart>;
+        const eb = showError ? <ErrorBar dataKey="err" width={5} strokeWidth={1.5} stroke={axisColor} direction="y" /> : null;
+        let el;
+        if (t === "boxplot" && raw) {
+          const stats = raw.order.map((nm) => ({ name: nm, ...boxStats(raw.map[nm]) })).filter((s) => s.q1 != null);
+          const lo = Math.min(...stats.map((s) => s.lo)), hi = Math.max(...stats.map((s) => s.hi)); const pad = (hi - lo || 1) * 0.08;
+          const dom = [yMin === "" ? lo - pad : Number(yMin), yMax === "" ? hi + pad : Number(yMax)];
+          const Box = (props) => {
+            const xa = props.xAxisMap && props.xAxisMap[Object.keys(props.xAxisMap)[0]]; const ya = props.yAxisMap && props.yAxisMap[Object.keys(props.yAxisMap)[0]];
+            if (!xa || !ya) return null; const xs = xa.scale, ys = ya.scale; const bw = xs.bandwidth ? xs.bandwidth() : 40; const w = Math.min(bw * 0.6, 46);
+            return <g>{stats.map((s, i) => { const cx = xs(s.name) + bw / 2; const col = barColors[s.name] || chartColor; return <g key={i}>
+              <line x1={cx} x2={cx} y1={ys(s.hi)} y2={ys(s.q3)} stroke={col} strokeWidth={1.3} /><line x1={cx} x2={cx} y1={ys(s.q1)} y2={ys(s.lo)} stroke={col} strokeWidth={1.3} />
+              <line x1={cx - w / 3} x2={cx + w / 3} y1={ys(s.hi)} y2={ys(s.hi)} stroke={col} strokeWidth={1.3} /><line x1={cx - w / 3} x2={cx + w / 3} y1={ys(s.lo)} y2={ys(s.lo)} stroke={col} strokeWidth={1.3} />
+              <rect x={cx - w / 2} y={ys(s.q3)} width={w} height={Math.max(1, ys(s.q1) - ys(s.q3))} fill={col} fillOpacity={0.22} stroke={col} strokeWidth={1.3} />
+              <line x1={cx - w / 2} x2={cx + w / 2} y1={ys(s.med)} y2={ys(s.med)} stroke={col} strokeWidth={2} />
+            </g>; })}</g>;
+          };
+          el = <BarChart data={stats} margin={margin}>{grid}{xtit("name")}<YAxis tick={{ fontSize: fontTick, fill: axisColor }} label={ylab} domain={dom} allowDataOverflow /><Tooltip />{sig}<Bar dataKey="med" fillOpacity={0} isAnimationActive={false} /><Customized component={Box} /></BarChart>;
+        }
+        else if (t === "horizontais") el = <BarChart data={rowsE} layout="vertical" margin={{ ...margin, left: 24 }}>{grid}<XAxis type="number" tick={{ fontSize: fontTick, fill: axisColor }} label={xlab} /><YAxis type="category" dataKey="name" tick={{ fontSize: fontTick, fill: axisColor }} width={70} label={ylab} /><Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{cells}{vlab("média")}</Bar></BarChart>;
+        else if (t === "linha") el = <LineChart data={rowsE} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Line type="monotone" dataKey="média" stroke={chartColor} strokeWidth={lineW} dot>{eb}{vlab("média")}</Line></LineChart>;
+        else el = <BarChart data={rowsE} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{cells}{eb}{vlab("média")}</Bar></BarChart>;
         return { types, el, cnames: rows.map((r) => r.name) };
       };
-      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) { const m = meansChart(groupMeans(vars.num, vars.group)); return { kind: "bars", def: "Médias por grupo — " + vars.num, types: m.types, el: m.el, cnames: m.cnames }; }
-      if (k === "anova2") { const m = meansChart(groupMeans(vars.num, vars.groupA)); return { kind: "bars", def: "Médias por " + vars.groupA, types: m.types, el: m.el, cnames: m.cnames }; }
+      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) { const m = meansChart(groupMeans(vars.num, vars.group), groupsOf(vars.num, vars.group)); return { kind: "bars", def: "Médias por grupo — " + vars.num, types: m.types, el: m.el, cnames: m.cnames }; }
+      if (k === "anova2") { const m = meansChart(groupMeans(vars.num, vars.groupA), groupsOf(vars.num, vars.groupA)); return { kind: "bars", def: "Médias por " + vars.groupA, types: m.types, el: m.el, cnames: m.cnames }; }
       if (k === "chi2" || k === "fisher") {
         const { r1, r2, tbl } = contingency(vars.cat1, vars.cat2);
         const rows = r1.map((rn, i) => { const o = { name: rn }; r2.forEach((cn, j) => (o[cn] = tbl[i][j])); return o; });
@@ -744,6 +776,11 @@ function AnaliseQuantitativa({ active = true }) {
             {(spec.kind === "bars" || spec.kind === "hist" || spec.kind === "contingency") && <label style={{ ...chk, display: "block" }}>Largura das barras (px)<input type="number" min="2" value={barSize} placeholder="auto" onChange={(e) => setBarSize(e.target.value)} style={inp} /></label>}
             <label style={{ ...chk, display: "block" }}>Espessura da linha<input type="number" min="1" max="8" value={lineW} onChange={(e) => setLineW(Number(e.target.value) || 2)} style={inp} /></label>
             {spec.kind === "scatter" && <label style={{ ...chk, display: "block" }}>Tamanho dos pontos<input type="number" min="10" max="400" step="10" value={pointSize} onChange={(e) => setPointSize(Number(e.target.value) || 70)} style={inp} /></label>}
+            {spec.kind === "bars" && <div style={{ gridColumn: "1 / -1", display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+              <label style={chk}><input type="checkbox" checked={showError} onChange={(e) => setShowError(e.target.checked)} /> Barras de erro</label>
+              <label style={chk}>Tipo <select value={errType} onChange={(e) => setErrType(e.target.value)} style={ctrl} disabled={!showError}><option value="ci">IC 95%</option><option value="sd">Desvio-padrão</option><option value="se">Erro-padrão</option></select></label>
+              <span style={{ fontSize: 11, color: "#9aa7b2" }}>(em barras/linha; use o tipo “Boxplot” para ver a distribuição)</span>
+            </div>}
             {cnames.length > 0 && (
               <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e3e9ee", paddingTop: 8 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: "#9aa7b2", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>{spec.kind === "contingency" ? "Cor por categoria" : "Cor por grupo / barra"}</div>
@@ -762,7 +799,7 @@ function AnaliseQuantitativa({ active = true }) {
               <label style={chk}><input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} /> Valores</label>
               <label style={chk}><input type="checkbox" checked={showSig} onChange={(e) => setShowSig(e.target.checked)} /> Significância (∗)</label>
               {spec.kind === "contingency" && <label style={chk}><input type="checkbox" checked={showLegend} onChange={(e) => setShowLegend(e.target.checked)} /> Legenda</label>}
-              <button onClick={() => { setChartW(null); setChartH(220); setFontTick(10); setAxisColor("#5a6b7a"); setGridColor("#eef1f4"); setBgColor("#ffffff"); setYMin(""); setYMax(""); setXAngle(0); setValDec(1); setLineW(2); setBarSize(""); setPointSize(70); setTitleSize(12); setTitleColor("#5a6b7a"); setSigColor("#34495e"); setSigLegend(""); setSigContent("stars"); setSigCustom({}); setSigStroke(1.2); setSigTick(5); setSigFont(14); setBarColors({}); }} style={{ ...ctrl, marginLeft: "auto" }} title="restaurar todos os detalhes do gráfico">restaurar estilo</button>
+              <button onClick={() => { setChartW(null); setChartH(220); setFontTick(10); setAxisColor("#5a6b7a"); setGridColor("#eef1f4"); setBgColor("#ffffff"); setYMin(""); setYMax(""); setXAngle(0); setValDec(1); setLineW(2); setBarSize(""); setPointSize(70); setTitleSize(12); setTitleColor("#5a6b7a"); setSigColor("#34495e"); setSigLegend(""); setSigContent("stars"); setSigCustom({}); setSigStroke(1.2); setSigTick(5); setSigFont(14); setBarColors({}); setShowError(false); setErrType("ci"); }} style={{ ...ctrl, marginLeft: "auto" }} title="restaurar todos os detalhes do gráfico">restaurar estilo</button>
             </div>
             {pValue != null && showSig && (
               <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e3e9ee", paddingTop: 8 }}>
