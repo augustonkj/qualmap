@@ -376,11 +376,24 @@ function AnaliseQuantitativa({ active = true }) {
 
   const pValue = result && result.res && Number.isFinite(result.res.p) ? result.res.p : null;
   const stars = (p) => (p < 0.001 ? "***" : p < 0.01 ? "**" : p < 0.05 ? "*" : "n.s.");
+  const BRACKET_KINDS = ["t2", "anova", "mw", "median", "ks2", "ww2", "moses", "anova2", "chi2", "fisher"];
+  // desenha o colchete de comparação (com asteriscos) no topo e a legenda do p embaixo — tudo dentro do SVG
   const SigAnno = (props) => {
-    if (pValue == null || !showSig) return null;
-    const w = props.width || 300; const s = stars(pValue);
-    const txt = s === "n.s." ? "n.s." : s + "  (p " + (pValue < 0.001 ? "< 0,001" : "= " + pValue.toFixed(3).replace(".", ",")) + ")";
-    return <text x={w / 2} y={14} textAnchor="middle" fontSize={13} fontWeight={700} fill={pValue < 0.05 ? "#2e7d4f" : "#7a8b99"}>{txt}</text>;
+    if (pValue == null || !showSig || !result) return null;
+    const w = props.width || 320, h = props.height || 220, off = props.offset || { left: 40, width: w - 60 };
+    const s = stars(pValue);
+    const pTxt = pValue < 0.001 ? "p < 0,001" : "p = " + pValue.toFixed(4).replace(".", ",");
+    const legend = (s === "n.s." ? "n.s. (não significativo)" : s) + "  ·  " + pTxt + "   ( ∗ p<0,05 · ∗∗ p<0,01 · ∗∗∗ p<0,001 )";
+    const els = [];
+    if (BRACKET_KINDS.includes(result.key)) {
+      const x1 = off.left + off.width * 0.2, x2 = off.left + off.width * 0.8, y = 16;
+      els.push(<line key="b" x1={x1} y1={y} x2={x2} y2={y} stroke="#34495e" strokeWidth={1.2} />);
+      els.push(<line key="t1" x1={x1} y1={y} x2={x1} y2={y + 6} stroke="#34495e" strokeWidth={1.2} />);
+      els.push(<line key="t2" x1={x2} y1={y} x2={x2} y2={y + 6} stroke="#34495e" strokeWidth={1.2} />);
+      els.push(<text key="s" x={(x1 + x2) / 2} y={y - 3} textAnchor="middle" fontSize={15} fontWeight={700} fill="#2b3a48">{s === "n.s." ? "ns" : s}</text>);
+    }
+    els.push(<text key="leg" x={w / 2} y={h - 5} textAnchor="middle" fontSize={11} fontWeight={600} fill={pValue < 0.05 ? "#2e7d4f" : "#7a8b99"}>{legend}</text>);
+    return <g>{els}</g>;
   };
 
   const dlFile = (blob, name) => { const u = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1500); };
@@ -535,12 +548,13 @@ function AnaliseQuantitativa({ active = true }) {
   const chartSpec = () => {
     if (!result || !data) return null;
     const k = result.key;
-    const mTop = (pValue != null && showSig) ? 22 : 6;
+    const hasP = pValue != null && showSig;
+    const bracket = hasP && BRACKET_KINDS.includes(k);
     const grid = showGrid ? <CartesianGrid stroke="#eef1f4" strokeDasharray="3 3" /> : null;
     const xlab = xLabel ? { value: xLabel, position: "insideBottom", offset: -4, style: { fontSize: 11, fill: "#5a6b7a" } } : undefined;
     const ylab = yLabel ? { value: yLabel, angle: -90, position: "insideLeft", style: { fontSize: 11, fill: "#5a6b7a" } } : undefined;
-    const sig = <Customized component={SigAnno} />;
-    const margin = { top: mTop, right: 10, left: yLabel ? 8 : 0, bottom: xLabel ? 16 : 2 };
+    const sig = hasP ? <Customized component={SigAnno} /> : null;
+    const margin = { top: bracket ? 30 : 8, right: 12, left: yLabel ? 8 : 0, bottom: (hasP ? 20 : 2) + (xLabel ? 14 : 0) };
     const vlab = (key, dec) => showValues && <LabelList dataKey={key} position="top" formatter={dec != null ? (v) => Number(v).toFixed(dec) : undefined} style={{ fontSize: 10, fill: "#5a6b7a" }} />;
     const xtit = (dk, type) => <XAxis dataKey={dk} type={type} tick={{ fontSize: 10 }} label={xlab} />;
     const ytit = (extra) => <YAxis tick={{ fontSize: 10 }} label={ylab} {...(extra || {})} />;
