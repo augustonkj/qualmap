@@ -3,6 +3,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Scatte
 import * as ST from "./stats.js";
 
 const CHART_COLORS = ["#1f7a8c", "#7a5ea8", "#2e7d4f", "#b06a1f", "#c0392b", "#16a085"];
+const PALETTES = {
+  "Padrão": ["#1f7a8c", "#7a5ea8", "#2e7d4f", "#b06a1f", "#c0392b", "#16a085"],
+  "Vivo": ["#1971c2", "#2f9e44", "#e8590c", "#9c36b5", "#e03131", "#0c8599"],
+  "Pastel": ["#74c69d", "#90c2f0", "#ffb787", "#d0bfff", "#ffa8a8", "#99e9f2"],
+  "Azuis": ["#0b4f8a", "#1565c0", "#1f7ad6", "#4c9bf0", "#7bb8f7", "#a8d1fb"],
+  "Cinzas": ["#343a40", "#495057", "#6c757d", "#909aa3", "#adb5bd", "#ced4da"],
+};
 function histogram(x, nbins = 8) {
   if (x.length < 2) return [];
   const min = Math.min(...x), max = Math.max(...x); if (max === min) return [{ label: String(min), n: x.length }];
@@ -363,6 +370,12 @@ function AnaliseQuantitativa({ active = true }) {
   const [showLegend, setShowLegend] = useState(true);
   const [sigColor, setSigColor] = useState("#34495e");
   const [sigLegend, setSigLegend] = useState("");
+  const [sigContent, setSigContent] = useState("stars"); // stars | p | both
+  const [sigCustom, setSigCustom] = useState({}); // texto livre por comparação (chave do par ou "_single")
+  const [sigStroke, setSigStroke] = useState(1.2);
+  const [sigTick, setSigTick] = useState(5);
+  const [sigFont, setSigFont] = useState(14);
+  const [barColors, setBarColors] = useState({}); // cor por grupo/barra
   const [posthocMethod, setPosthocMethod] = useState("welch");
   // detalhes finos do gráfico
   const [fontTick, setFontTick] = useState(10);
@@ -381,7 +394,7 @@ function AnaliseQuantitativa({ active = true }) {
   const [shownPairs, setShownPairs] = useState(() => new Set());
   const [chartOpts, setChartOpts] = useState(false);
   const resultKey = result ? result.key : null;
-  useEffect(() => { setChartTitle(""); setXLabel(""); setYLabel(""); setChartType(""); setSigLegend(""); }, [resultKey]); // só zera ao trocar de teste (não a cada recálculo)
+  useEffect(() => { setChartTitle(""); setXLabel(""); setYLabel(""); setChartType(""); setSigLegend(""); setSigCustom({}); setBarColors({}); }, [resultKey]); // só zera ao trocar de teste (não a cada recálculo)
   // ao trocar de teste: mostra por padrão os pares significativos da ANOVA (preserva a escolha ao recalcular/trocar método)
   useEffect(() => {
     if (result && result.key === "anova" && result.res.posthoc) setShownPairs(new Set(result.res.posthoc.filter((p) => p.padj < 0.05).map((p) => p.a + "|" + p.b)));
@@ -407,7 +420,17 @@ function AnaliseQuantitativa({ active = true }) {
   const barsType = () => !chartType || chartType === "barras"; // colchete só faz sentido em barras verticais
   // colchetes de pós-hoc da ANOVA (pares significativos), no nível visível em px
   const anovaBrackets = () => (result && result.key === "anova" && result.res.posthoc) ? result.res.posthoc.filter((p) => p.padj < 0.05) : [];
-  // desenha o(s) colchete(s) com asteriscos no topo e a legenda do p embaixo — tudo dentro do SVG
+  const sigStep = Math.max(16, sigFont + 4); // espaçamento vertical entre colchetes empilhados
+  // texto que aparece sobre cada colchete (texto livre, ou asteriscos / p / ambos)
+  const bracketLabel = (key, p) => {
+    if (sigCustom[key] != null && sigCustom[key] !== "") return sigCustom[key];
+    const st = stars(p); const ns = st === "n.s." ? "ns" : st;
+    const pT = p < 0.001 ? "p<0,001" : "p=" + p.toFixed(3).replace(".", ",");
+    if (sigContent === "p") return pT;
+    if (sigContent === "both") return ns + " (" + pT + ")";
+    return ns;
+  };
+  // desenha o(s) colchete(s) sobre as barras e a legenda do p embaixo — tudo dentro do SVG
   const SigAnno = (props) => {
     if (pValue == null || !showSig || !result) return null;
     const w = props.width || 320, h = props.height || 220, off = props.offset || { left: 40, width: w - 60 };
@@ -415,7 +438,7 @@ function AnaliseQuantitativa({ active = true }) {
     const pTxt = pValue < 0.001 ? "p < 0,001" : "p = " + pValue.toFixed(4).replace(".", ",");
     const legend = sigLegend || ((s === "n.s." ? "n.s. (não significativo)" : s) + "  ·  " + pTxt + "   ( ∗ p<0,05 · ∗∗ p<0,01 · ∗∗∗ p<0,001 )");
     const els = [];
-    const bracket = (x1, x2, y, st, key) => { const c = (x1 + x2) / 2; els.push(<line key={key + "b"} x1={x1} y1={y} x2={x2} y2={y} stroke={sigColor} strokeWidth={1.2} />, <line key={key + "1"} x1={x1} y1={y} x2={x1} y2={y + 5} stroke={sigColor} strokeWidth={1.2} />, <line key={key + "2"} x1={x2} y1={y} x2={x2} y2={y + 5} stroke={sigColor} strokeWidth={1.2} />, <text key={key + "s"} x={c} y={y - 3} textAnchor="middle" fontSize={14} fontWeight={700} fill={sigColor}>{st === "n.s." ? "ns" : st}</text>); };
+    const bracket = (x1, x2, y, label, key) => { const c = (x1 + x2) / 2; els.push(<line key={key + "b"} x1={x1} y1={y} x2={x2} y2={y} stroke={sigColor} strokeWidth={sigStroke} />, <line key={key + "1"} x1={x1} y1={y} x2={x1} y2={y + sigTick} stroke={sigColor} strokeWidth={sigStroke} />, <line key={key + "2"} x1={x2} y1={y} x2={x2} y2={y + sigTick} stroke={sigColor} strokeWidth={sigStroke} />, <text key={key + "s"} x={c} y={y - 3} textAnchor="middle" fontSize={sigFont} fontWeight={700} fill={sigColor}>{label}</text>); };
     // posições exatas das barras pela escala do eixo X (categórico)
     const xa = props.xAxisMap && props.xAxisMap[Object.keys(props.xAxisMap)[0]]; const scale = xa && xa.scale;
     const cx = (nm) => (scale ? scale(nm) + (scale.bandwidth ? scale.bandwidth() / 2 : 0) : null);
@@ -425,12 +448,12 @@ function AnaliseQuantitativa({ active = true }) {
       if (result.key === "anova" && result.res.posthoc) {
         const chosen = result.res.posthoc.filter((p) => shownPairs.has(p.a + "|" + p.b));
         chosen.sort((p, q) => Math.abs(order.indexOf(p.a) - order.indexOf(p.b)) - Math.abs(order.indexOf(q.a) - order.indexOf(q.b)));
-        chosen.forEach((pr, i) => { const x1 = cx(pr.a), x2 = cx(pr.b); if (x1 != null && x2 != null) bracket(Math.min(x1, x2), Math.max(x1, x2), 14 + i * 16, stars(pr.padj), "p" + i); });
+        chosen.forEach((pr, i) => { const x1 = cx(pr.a), x2 = cx(pr.b); if (x1 != null && x2 != null) bracket(Math.min(x1, x2), Math.max(x1, x2), 12 + i * sigStep, bracketLabel(pr.a + "|" + pr.b, pr.padj), "p" + i); });
       } else if (order.length >= 2) {
-        const x1 = cx(order[0]), x2 = cx(order[order.length - 1]); if (x1 != null && x2 != null) bracket(Math.min(x1, x2), Math.max(x1, x2), 16, s, "o");
+        const x1 = cx(order[0]), x2 = cx(order[order.length - 1]); if (x1 != null && x2 != null) bracket(Math.min(x1, x2), Math.max(x1, x2), 14, bracketLabel("_single", pValue), "o");
       }
     } else if (result.key === "chi2" || result.key === "fisher") {
-      bracket(off.left + off.width * 0.2, off.left + off.width * 0.8, 16, s, "c");
+      bracket(off.left + off.width * 0.2, off.left + off.width * 0.8, 14, bracketLabel("_single", pValue), "c");
     }
     els.push(<text key="leg" x={w / 2} y={h - 5} textAnchor="middle" fontSize={11} fontWeight={600} fill={sigColor}>{legend}</text>);
     return <g>{els}</g>;
@@ -612,7 +635,7 @@ function AnaliseQuantitativa({ active = true }) {
     const aTick = xAngle ? { angle: -Math.abs(xAngle), textAnchor: "end" } : {};
     const yDom = [yMin === "" ? "auto" : Number(yMin), yMax === "" ? "auto" : Number(yMax)];
     const bsz = barSize === "" ? undefined : Number(barSize);
-    const margin = { top: drawsBracket ? (14 + nBr * 16) : 8, right: 12, left: yLabel ? 8 : 0, bottom: (hasP ? 20 : 2) + (xLabel ? 14 : 0) + (xAngle ? 22 : 0) };
+    const margin = { top: drawsBracket ? (12 + nBr * sigStep) : 8, right: 12, left: yLabel ? 8 : 0, bottom: (hasP ? 20 : 2) + (xLabel ? 14 : 0) + (xAngle ? 22 : 0) };
     const vlab = (key, intish) => showValues && <LabelList dataKey={key} position="top" formatter={(v) => (intish ? String(v) : Number(v).toFixed(valDec))} style={{ fontSize: fontTick, fill: axisColor }} />;
     const xtit = (dk, type) => <XAxis dataKey={dk} type={type} tick={{ fontSize: fontTick, fill: axisColor, ...aTick }} height={xAngle ? 48 : undefined} label={xlab} />;
     const ytit = (extra) => <YAxis tick={{ fontSize: fontTick, fill: axisColor }} label={ylab} domain={yDom} allowDataOverflow={yMin !== "" || yMax !== ""} {...(extra || {})} />;
@@ -641,9 +664,10 @@ function AnaliseQuantitativa({ active = true }) {
       const meansChart = (rows) => {
         const types = [["barras", "Barras"], ["horizontais", "Barras horizontais"], ["linha", "Linha"]]; const t = pick(types);
         let el;
-        if (t === "horizontais") el = <BarChart data={rows} layout="vertical" margin={{ ...margin, left: 24 }}>{grid}<XAxis type="number" tick={{ fontSize: fontTick, fill: axisColor }} label={xlab} /><YAxis type="category" dataKey="name" tick={{ fontSize: fontTick, fill: axisColor }} width={70} label={ylab} /><Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{vlab("média")}</Bar></BarChart>;
+        const cells = rows.map((r, i) => <Cell key={i} fill={barColors[r.name] || chartColor} />);
+        if (t === "horizontais") el = <BarChart data={rows} layout="vertical" margin={{ ...margin, left: 24 }}>{grid}<XAxis type="number" tick={{ fontSize: fontTick, fill: axisColor }} label={xlab} /><YAxis type="category" dataKey="name" tick={{ fontSize: fontTick, fill: axisColor }} width={70} label={ylab} /><Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{cells}{vlab("média")}</Bar></BarChart>;
         else if (t === "linha") el = <LineChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Line type="monotone" dataKey="média" stroke={chartColor} strokeWidth={lineW} dot>{vlab("média")}</Line></LineChart>;
-        else el = <BarChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{vlab("média")}</Bar></BarChart>;
+        else el = <BarChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{cells}{vlab("média")}</Bar></BarChart>;
         return { types, el };
       };
       if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) { const m = meansChart(groupMeans(vars.num, vars.group)); return { kind: "bars", def: "Médias por grupo — " + vars.num, types: m.types, el: m.el }; }
@@ -663,6 +687,9 @@ function AnaliseQuantitativa({ active = true }) {
     const ctrl = { fontSize: 11.5, padding: "3px 7px", border: "1px solid #cfd6dd", borderRadius: 5, background: "#fff", color: "#34495e", cursor: "pointer" };
     const chk = { fontSize: 11.5, color: "#46555f", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" };
     const inp = { fontSize: 11.5, padding: "4px 7px", border: "1px solid #cfd6dd", borderRadius: 5, width: "100%", boxSizing: "border-box" };
+    const sw = { width: 60, flex: "0 0 auto" };
+    const cbox = { width: 26, height: 22, padding: 0, border: "1px solid #cfd6dd", borderRadius: 4, background: "none", cursor: "pointer" };
+    const groupNames = spec.kind === "bars" ? (() => { try { const gf = result.key === "anova2" ? vars.groupA : vars.group; return groupMeans(vars.num, gf).map((r) => r.name); } catch { return []; } })() : [];
     return (
       <div style={{ marginTop: 12 }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
@@ -699,14 +726,40 @@ function AnaliseQuantitativa({ active = true }) {
             {(spec.kind === "bars" || spec.kind === "hist" || spec.kind === "contingency") && <label style={{ ...chk, display: "block" }}>Largura das barras (px)<input type="number" min="2" value={barSize} placeholder="auto" onChange={(e) => setBarSize(e.target.value)} style={inp} /></label>}
             <label style={{ ...chk, display: "block" }}>Espessura da linha<input type="number" min="1" max="8" value={lineW} onChange={(e) => setLineW(Number(e.target.value) || 2)} style={inp} /></label>
             {spec.kind === "scatter" && <label style={{ ...chk, display: "block" }}>Tamanho dos pontos<input type="number" min="10" max="400" step="10" value={pointSize} onChange={(e) => setPointSize(Number(e.target.value) || 70)} style={inp} /></label>}
+            {spec.kind === "bars" && groupNames.length > 0 && (
+              <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e3e9ee", paddingTop: 8 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#9aa7b2", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Cor por grupo / barra</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+                  {groupNames.map((nm) => <label key={nm} style={chk}><input type="color" value={barColors[nm] || chartColor} onChange={(e) => setBarColors((s) => ({ ...s, [nm]: e.target.value }))} style={cbox} /> {nm}</label>)}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 6 }}>
+                  <span style={{ fontSize: 11, color: "#9aa7b2" }}>Paleta:</span>
+                  {Object.keys(PALETTES).map((pn) => <button key={pn} onClick={() => { const cols = PALETTES[pn]; setBarColors(Object.fromEntries(groupNames.map((nm, i) => [nm, cols[i % cols.length]]))); setChartColor(cols[0]); }} style={ctrl} title={"aplicar paleta " + pn}>{pn}</button>)}
+                  <button onClick={() => setBarColors({})} style={ctrl} title="usar uma cor única para todas as barras">cor única</button>
+                </div>
+              </div>
+            )}
             <div style={{ gridColumn: "1 / -1", display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
               <label style={chk}><input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Grade</label>
               <label style={chk}><input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} /> Valores</label>
               <label style={chk}><input type="checkbox" checked={showSig} onChange={(e) => setShowSig(e.target.checked)} /> Significância (∗)</label>
               {spec.kind === "contingency" && <label style={chk}><input type="checkbox" checked={showLegend} onChange={(e) => setShowLegend(e.target.checked)} /> Legenda</label>}
-              <button onClick={() => { setChartW(null); setChartH(220); setFontTick(10); setAxisColor("#5a6b7a"); setGridColor("#eef1f4"); setBgColor("#ffffff"); setYMin(""); setYMax(""); setXAngle(0); setValDec(1); setLineW(2); setBarSize(""); setPointSize(70); setTitleSize(12); setTitleColor("#5a6b7a"); setSigColor("#34495e"); setSigLegend(""); }} style={{ ...ctrl, marginLeft: "auto" }} title="restaurar todos os detalhes do gráfico">restaurar estilo</button>
+              <button onClick={() => { setChartW(null); setChartH(220); setFontTick(10); setAxisColor("#5a6b7a"); setGridColor("#eef1f4"); setBgColor("#ffffff"); setYMin(""); setYMax(""); setXAngle(0); setValDec(1); setLineW(2); setBarSize(""); setPointSize(70); setTitleSize(12); setTitleColor("#5a6b7a"); setSigColor("#34495e"); setSigLegend(""); setSigContent("stars"); setSigCustom({}); setSigStroke(1.2); setSigTick(5); setSigFont(14); setBarColors({}); }} style={{ ...ctrl, marginLeft: "auto" }} title="restaurar todos os detalhes do gráfico">restaurar estilo</button>
             </div>
-            {pValue != null && showSig && <label style={{ ...chk, display: "block", gridColumn: "1 / -1" }}>Texto da legenda de significância<input value={sigLegend} onChange={(e) => setSigLegend(e.target.value)} placeholder={(stars(pValue) === "n.s." ? "n.s. (não significativo)" : stars(pValue)) + "  ·  p" + (pValue < 0.001 ? " < 0,001" : " = " + pValue.toFixed(4).replace(".", ",")) + "   ( ∗ p<0,05 · ∗∗ p<0,01 · ∗∗∗ p<0,001 )"} style={inp} /></label>}
+            {pValue != null && showSig && (
+              <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e3e9ee", paddingTop: 8 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#9aa7b2", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Significância (colchete)</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 6 }}>
+                  <label style={chk}>Mostrar <select value={sigContent} onChange={(e) => setSigContent(e.target.value)} style={ctrl}><option value="stars">asteriscos (∗)</option><option value="p">valor de p</option><option value="both">∗ e p</option></select></label>
+                  <label style={chk}>Cor <input type="color" value={sigColor} onChange={(e) => setSigColor(e.target.value)} style={cbox} /></label>
+                  <label style={chk}>Fonte <input type="number" min="8" max="28" value={sigFont} onChange={(e) => setSigFont(Number(e.target.value) || 14)} style={{ ...inp, ...sw }} /></label>
+                  <label style={chk}>Espessura <input type="number" min="0.5" max="6" step="0.5" value={sigStroke} onChange={(e) => setSigStroke(Number(e.target.value) || 1.2)} style={{ ...inp, ...sw }} /></label>
+                  <label style={chk}>Haste <input type="number" min="0" max="20" value={sigTick} onChange={(e) => setSigTick(Math.max(0, Number(e.target.value) || 0))} style={{ ...inp, ...sw }} /></label>
+                </div>
+                {result && result.key !== "anova" && <label style={{ ...chk, display: "block", marginBottom: 6 }}>Texto livre sobre o colchete<input value={sigCustom["_single"] || ""} onChange={(e) => setSigCustom((s) => ({ ...s, _single: e.target.value }))} placeholder={bracketLabel("_single", pValue)} style={inp} /></label>}
+                <label style={{ ...chk, display: "block" }}>Texto da legenda (embaixo)<input value={sigLegend} onChange={(e) => setSigLegend(e.target.value)} placeholder={(stars(pValue) === "n.s." ? "n.s. (não significativo)" : stars(pValue)) + "  ·  p" + (pValue < 0.001 ? " < 0,001" : " = " + pValue.toFixed(4).replace(".", ",")) + "   ( ∗ p<0,05 · ∗∗ p<0,01 · ∗∗∗ p<0,001 )"} style={inp} /></label>
+              </div>
+            )}
             {result && result.key === "anova" && result.res.posthoc && (
               <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e3e9ee", paddingTop: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
@@ -714,9 +767,12 @@ function AnaliseQuantitativa({ active = true }) {
                   <select value={posthocMethod} onChange={(e) => setPosthocMethod(e.target.value)} style={ctrl}><option value="welch">t de Welch (Bonferroni)</option><option value="tukey">Tukey HSD</option></select>
                   <span style={{ fontSize: 11, color: "#9aa7b2" }}>marque quais comparações mostrar no gráfico:</span>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   {result.res.posthoc.map((pp) => { const key = pp.a + "|" + pp.b; const st = pp.padj < 0.001 ? "***" : pp.padj < 0.01 ? "**" : pp.padj < 0.05 ? "*" : "n.s."; return (
-                    <label key={key} style={chk}><input type="checkbox" checked={shownPairs.has(key)} onChange={(e) => setShownPairs((s) => { const n = new Set(s); e.target.checked ? n.add(key) : n.delete(key); return n; })} /> {pp.a}×{pp.b} <b style={{ color: pp.padj < 0.05 ? "#2e7d4f" : "#9aa7b2" }}>{st}</b></label>); })}
+                    <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <label style={{ ...chk, minWidth: 120 }}><input type="checkbox" checked={shownPairs.has(key)} onChange={(e) => setShownPairs((s) => { const n = new Set(s); e.target.checked ? n.add(key) : n.delete(key); return n; })} /> {pp.a}×{pp.b} <b style={{ color: pp.padj < 0.05 ? "#2e7d4f" : "#9aa7b2" }}>{st}</b></label>
+                      {shownPairs.has(key) && <input value={sigCustom[key] || ""} onChange={(e) => setSigCustom((s) => ({ ...s, [key]: e.target.value }))} placeholder={bracketLabel(key, pp.padj)} title="texto sobre este colchete" style={{ ...inp, width: 130, flex: "0 0 auto" }} />}
+                    </div>); })}
                 </div>
               </div>
             )}
