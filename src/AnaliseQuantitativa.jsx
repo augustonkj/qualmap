@@ -491,12 +491,22 @@ function AnaliseQuantitativa({ active = true }) {
       dataTbl = `<table style="border-collapse:collapse;font-size:13px"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
     }
     const resHTML = result && resultRef.current ? resultRef.current.innerHTML : "<p>Nenhum teste calculado.</p>";
+    // embute o gráfico personalizado (com significância) no relatório
+    let chartBlock = "";
+    const svgEl = chartRef.current && chartRef.current.querySelector("svg");
+    if (svgEl) {
+      const r = svgEl.getBoundingClientRect(); const wpx = Math.round(r.width) || 640, hpx = Math.round(r.height) || 300;
+      const clone = svgEl.cloneNode(true); clone.setAttribute("width", wpx); clone.setAttribute("height", hpx); clone.setAttribute("style", "max-width:100%;height:auto");
+      const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect"); bg.setAttribute("x", 0); bg.setAttribute("y", 0); bg.setAttribute("width", wpx); bg.setAttribute("height", hpx); bg.setAttribute("fill", bgColor || "#ffffff"); clone.insertBefore(bg, clone.firstChild);
+      const xml = new XMLSerializer().serializeToString(clone); const sp = chartSpec(); const title = chartTitle || (sp && sp.def) || "";
+      chartBlock = `<h2>Gráfico</h2>${title ? `<div style="font-size:13px;font-weight:700;color:#5a6b7a;margin-bottom:6px">${title}</div>` : ""}<div>${xml}</div>`;
+    }
     let metodoBlock = "";
     if (result && INFO[result.key]) {
       const inf = INFO[result.key];
       metodoBlock = `<h2>Método e fórmula</h2><p style="font-size:13px;line-height:1.5">${inf.e}</p><div style="font-size:18px;margin:8px 0">${inf.f.join("")}</div>${inf.leg ? `<p style="font-size:12px;color:#5a6b7a">${inf.leg}</p>` : ""}${inf.r ? `<p style="font-size:11px;color:#888;font-style:italic">${inf.r}</p>` : ""}`;
     }
-    const doc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Análise Quantitativa</title><style>@media print{.noprint{display:none!important}}@page{margin:16mm}body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#2b3a48;margin:0}h1{font-size:20px}h2{font-size:15px;border-bottom:1px solid #e3e9ee;padding-bottom:4px;margin-top:24px}</style></head><body onload="setTimeout(function(){window.print()},300)"><div class="noprint" style="position:sticky;top:0;display:flex;gap:10px;align-items:center;background:#1f7a8c;color:#fff;padding:10px 16px">Relatório pronto. <button onclick="window.print()" style="border:none;background:#fff;color:#1f7a8c;font-weight:700;border-radius:6px;padding:6px 14px;cursor:pointer">Imprimir / Salvar como PDF</button><span style="font-size:12px;opacity:.85">escolha "Salvar como PDF" no destino</span></div><div style="max-width:900px;margin:0 auto;padding:24px"><h1>Análise Quantitativa</h1><p style="color:#888;font-size:13px">${data ? data.n + " casos · " + data.headers.length + " variáveis" : "sem dados"}</p><h2>Dados</h2>${dataTbl}<h2>Resultado</h2><div>${resHTML}</div>${metodoBlock}</div></body></html>`;
+    const doc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Análise Quantitativa</title><style>@media print{.noprint{display:none!important}}@page{margin:16mm}body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#2b3a48;margin:0}h1{font-size:20px}h2{font-size:15px;border-bottom:1px solid #e3e9ee;padding-bottom:4px;margin-top:24px}</style></head><body onload="setTimeout(function(){window.print()},300)"><div class="noprint" style="position:sticky;top:0;display:flex;gap:10px;align-items:center;background:#1f7a8c;color:#fff;padding:10px 16px">Relatório pronto. <button onclick="window.print()" style="border:none;background:#fff;color:#1f7a8c;font-weight:700;border-radius:6px;padding:6px 14px;cursor:pointer">Imprimir / Salvar como PDF</button><span style="font-size:12px;opacity:.85">escolha "Salvar como PDF" no destino</span></div><div style="max-width:900px;margin:0 auto;padding:24px"><h1>Análise Quantitativa</h1><p style="color:#888;font-size:13px">${data ? data.n + " casos · " + data.headers.length + " variáveis" : "sem dados"}</p><h2>Dados</h2>${dataTbl}<h2>Resultado</h2><div>${resHTML}</div>${chartBlock}${metodoBlock}</div></body></html>`;
     w.document.open(); w.document.write(doc); w.document.close();
   };
 
