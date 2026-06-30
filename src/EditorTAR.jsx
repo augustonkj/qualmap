@@ -712,9 +712,10 @@ table.cent{border-collapse:collapse;width:100%;font-size:12px} table.cent th{tex
         )}
 
         {viewMode === "diagrama" && (<>
-          <button style={ui.mini} onClick={() => setView((v) => ({ ...v, w: v.w * 0.9, h: v.h * 0.9 }))} aria-label="aproximar (zoom)" title="aproximar">＋</button>
-          <button style={ui.mini} onClick={() => setView((v) => ({ ...v, w: v.w * 1.1, h: v.h * 1.1 }))} aria-label="afastar (zoom)" title="afastar">－</button>
-          <button style={ui.mini} onClick={resetView} aria-label="ajustar à tela" title="ajustar">⤢</button>
+          <span style={{ fontSize: 12, color: "#5a6b7a", fontWeight: 600, alignSelf: "center" }}>Zoom</span>
+          <button style={ui.mini} onClick={() => setView((v) => ({ ...v, w: v.w * 0.9, h: v.h * 0.9 }))} aria-label="aproximar (zoom +)" title="aproximar (zoom +)">＋</button>
+          <button style={ui.mini} onClick={() => setView((v) => ({ ...v, w: v.w * 1.1, h: v.h * 1.1 }))} aria-label="afastar (zoom −)" title="afastar (zoom −)">－</button>
+          <button style={ui.mini} onClick={resetView} aria-label="ajustar à tela" title="ajustar à tela">⤢</button>
           <span style={ui.div} />
         </>)}
 
