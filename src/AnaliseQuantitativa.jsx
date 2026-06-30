@@ -973,6 +973,15 @@ function AnaliseQuantitativa({ active = true }) {
         <div style={{ ...T.card, flex: "1 1 360px", minWidth: 300 }}>
           <div style={T.cardH}>3 · Resultado</div>
           <div ref={resultRef}>{!result ? <div style={{ fontSize: 12.5, color: "#9aa7b2" }}>O resultado aparece aqui.</div> : <Result data={result} />}</div>
+          {result && INFO[result.key] && INFO[result.key].f && (
+            <div style={{ marginTop: 12, borderTop: "1px solid #eef1f4", paddingTop: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "#5a6b7a", marginBottom: 4 }}>Fórmula</div>
+              <div style={{ background: "#f7f9fb", border: "1px solid #eef1f4", borderRadius: 4, padding: "6px 10px", overflowX: "auto" }}>
+                {INFO[result.key].f.map((m, i) => <div key={i} style={{ fontSize: 17, margin: "4px 0", color: "#2b3a48" }} dangerouslySetInnerHTML={{ __html: m }} />)}
+              </div>
+              {INFO[result.key].leg && <div style={{ marginTop: 5, fontSize: 11, color: "#5a6b7a", lineHeight: 1.4 }}>{INFO[result.key].leg}</div>}
+            </div>
+          )}
         </div>
 
       </div>
