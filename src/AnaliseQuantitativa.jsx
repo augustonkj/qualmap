@@ -1,5 +1,15 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, CartesianGrid } from "recharts";
 import * as ST from "./stats.js";
+
+const CHART_COLORS = ["#1f7a8c", "#7a5ea8", "#2e7d4f", "#b06a1f", "#c0392b", "#16a085"];
+function histogram(x, nbins = 8) {
+  if (x.length < 2) return [];
+  const min = Math.min(...x), max = Math.max(...x); if (max === min) return [{ label: String(min), n: x.length }];
+  const w = (max - min) / nbins; const bins = Array.from({ length: nbins }, () => 0);
+  x.forEach((v) => { let i = Math.floor((v - min) / w); if (i >= nbins) i = nbins - 1; if (i < 0) i = 0; bins[i]++; });
+  return bins.map((n, i) => ({ label: (min + i * w).toFixed(1).replace(".", ","), n }));
+}
 
 /*
   Janela — Análise Quantitativa (testes estatísticos).
@@ -473,6 +483,38 @@ function AnaliseQuantitativa({ active = true }) {
     calcular(); setPendingCalc(false);
   }, [pendingCalc, data, vars]);
 
+  // ---------- gráfico apropriado ao teste ----------
+  const groupMeans = (numName, grpName) => { const { order, map } = groupsOf(numName, grpName); return order.map((g) => ({ name: g, média: map[g].reduce((a, b) => a + b, 0) / map[g].length })); };
+  const scatterBox = (title, xn, yn) => { const X = ST.toNums(col(xn)), Y = ST.toNums(col(yn)); const n = Math.min(X.length, Y.length); const pts = Array.from({ length: n }, (_, i) => ({ x: X[i], y: Y[i] })); return chartBox(title, <ScatterChart><CartesianGrid stroke="#eef1f4" /><XAxis type="number" dataKey="x" name={xn} tick={{ fontSize: 10 }} /><YAxis type="number" dataKey="y" name={yn} tick={{ fontSize: 10 }} /><Tooltip cursor={{ strokeDasharray: "3 3" }} /><Scatter data={pts} fill="#7a5ea8" /></ScatterChart>); };
+  const chartBox = (title, el) => (<div style={{ marginTop: 12 }}><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "#5a6b7a", marginBottom: 4 }}>{title}</div><div style={{ width: "100%", height: 180 }}><ResponsiveContainer width="100%" height="100%">{el}</ResponsiveContainer></div></div>);
+  const renderChart = () => {
+    if (!result || !data) return null;
+    const k = result.key;
+    try {
+      if (["describe", "ci", "t1", "runs"].includes(k)) {
+        const name = vars.num || (vars.items && vars.items[0]) || numCols[0]; if (!name) return null;
+        const h = histogram(ST.toNums(col(name)), 8); if (!h.length) return null;
+        return chartBox("Distribuição — " + name, <BarChart data={h}><XAxis dataKey="label" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="n" name="freq." fill="#1f7a8c" /></BarChart>);
+      }
+      if (k === "pearson" || k === "spearman") return scatterBox("Dispersão — " + vars.num + " × " + vars.num2, vars.num, vars.num2);
+      if (k === "tp" || k === "wilcoxon") return scatterBox("Antes × Depois", vars.num, vars.num2);
+      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) {
+        const rows = groupMeans(vars.num, vars.group);
+        return chartBox("Médias por grupo — " + vars.num, <BarChart data={rows}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="média">{rows.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar></BarChart>);
+      }
+      if (k === "anova2") {
+        const rows = groupMeans(vars.num, vars.groupA);
+        return chartBox("Médias por " + vars.groupA, <BarChart data={rows}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="média">{rows.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar></BarChart>);
+      }
+      if (k === "chi2" || k === "fisher") {
+        const { r1, r2, tbl } = contingency(vars.cat1, vars.cat2);
+        const rows = r1.map((rn, i) => { const o = { name: rn }; r2.forEach((cn, j) => (o[cn] = tbl[i][j])); return o; });
+        return chartBox("Frequências — " + vars.cat1 + " × " + vars.cat2, <BarChart data={rows}><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip />{r2.map((cn, j) => <Bar key={cn} dataKey={cn} fill={CHART_COLORS[j % CHART_COLORS.length]} />)}</BarChart>);
+      }
+    } catch (e) { return null; }
+    return null;
+  };
+
   // ---------- seletores de variáveis por tipo ----------
   const toggleItem = (h, checked) => setVars((s) => ({ ...s, items: checked ? [...(s.items || []), h] : (s.items || []).filter((x) => x !== h) }));
 
@@ -593,6 +635,7 @@ function AnaliseQuantitativa({ active = true }) {
         <div style={{ ...T.card, flex: "1 1 360px", minWidth: 300 }}>
           <div style={T.cardH}>3 · Resultado</div>
           <div ref={resultRef}>{!result ? <div style={{ fontSize: 12.5, color: "#9aa7b2" }}>O resultado aparece aqui.</div> : <Result data={result} />}</div>
+          {renderChart()}
         </div>
 
       </div>
