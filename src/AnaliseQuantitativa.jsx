@@ -668,16 +668,17 @@ function AnaliseQuantitativa({ active = true }) {
         if (t === "horizontais") el = <BarChart data={rows} layout="vertical" margin={{ ...margin, left: 24 }}>{grid}<XAxis type="number" tick={{ fontSize: fontTick, fill: axisColor }} label={xlab} /><YAxis type="category" dataKey="name" tick={{ fontSize: fontTick, fill: axisColor }} width={70} label={ylab} /><Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{cells}{vlab("média")}</Bar></BarChart>;
         else if (t === "linha") el = <LineChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Line type="monotone" dataKey="média" stroke={chartColor} strokeWidth={lineW} dot>{vlab("média")}</Line></LineChart>;
         else el = <BarChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit()}<Tooltip />{sig}<Bar dataKey="média" fill={chartColor} barSize={bsz}>{cells}{vlab("média")}</Bar></BarChart>;
-        return { types, el };
+        return { types, el, cnames: rows.map((r) => r.name) };
       };
-      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) { const m = meansChart(groupMeans(vars.num, vars.group)); return { kind: "bars", def: "Médias por grupo — " + vars.num, types: m.types, el: m.el }; }
-      if (k === "anova2") { const m = meansChart(groupMeans(vars.num, vars.groupA)); return { kind: "bars", def: "Médias por " + vars.groupA, types: m.types, el: m.el }; }
+      if (["t2", "anova", "mw", "median", "ks2", "ww2", "moses"].includes(k)) { const m = meansChart(groupMeans(vars.num, vars.group)); return { kind: "bars", def: "Médias por grupo — " + vars.num, types: m.types, el: m.el, cnames: m.cnames }; }
+      if (k === "anova2") { const m = meansChart(groupMeans(vars.num, vars.groupA)); return { kind: "bars", def: "Médias por " + vars.groupA, types: m.types, el: m.el, cnames: m.cnames }; }
       if (k === "chi2" || k === "fisher") {
         const { r1, r2, tbl } = contingency(vars.cat1, vars.cat2);
         const rows = r1.map((rn, i) => { const o = { name: rn }; r2.forEach((cn, j) => (o[cn] = tbl[i][j])); return o; });
         const types = [["agrupadas", "Barras agrupadas"], ["empilhadas", "Barras empilhadas"]]; const t = pick(types);
-        const el = <BarChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit({ allowDecimals: false })}<Tooltip />{showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}{sig}{r2.map((cn, j) => <Bar key={cn} dataKey={cn} stackId={t === "empilhadas" ? "a" : undefined} barSize={bsz} fill={CHART_COLORS[j % CHART_COLORS.length]}>{showValues && <LabelList dataKey={cn} position={t === "empilhadas" ? "center" : "top"} style={{ fontSize: fontTick, fill: t === "empilhadas" ? "#fff" : axisColor }} />}</Bar>)}</BarChart>;
-        return { kind: "contingency", def: "Frequências — " + vars.cat1 + " × " + vars.cat2, types, el };
+        const colOf = (cn, j) => barColors[cn] || CHART_COLORS[j % CHART_COLORS.length];
+        const el = <BarChart data={rows} margin={margin}>{grid}{xtit("name")}{ytit({ allowDecimals: false })}<Tooltip />{showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}{sig}{r2.map((cn, j) => <Bar key={cn} dataKey={cn} stackId={t === "empilhadas" ? "a" : undefined} barSize={bsz} fill={colOf(cn, j)}>{showValues && <LabelList dataKey={cn} position={t === "empilhadas" ? "center" : "top"} style={{ fontSize: fontTick, fill: t === "empilhadas" ? "#fff" : axisColor }} />}</Bar>)}</BarChart>;
+        return { kind: "contingency", def: "Frequências — " + vars.cat1 + " × " + vars.cat2, types, el, cnames: r2 };
       }
     } catch (e) { return null; }
     return null;
@@ -689,7 +690,8 @@ function AnaliseQuantitativa({ active = true }) {
     const inp = { fontSize: 11.5, padding: "4px 7px", border: "1px solid #cfd6dd", borderRadius: 5, width: "100%", boxSizing: "border-box" };
     const sw = { width: 60, flex: "0 0 auto" };
     const cbox = { width: 26, height: 22, padding: 0, border: "1px solid #cfd6dd", borderRadius: 4, background: "none", cursor: "pointer" };
-    const groupNames = spec.kind === "bars" ? (() => { try { const gf = result.key === "anova2" ? vars.groupA : vars.group; return groupMeans(vars.num, gf).map((r) => r.name); } catch { return []; } })() : [];
+    const cnames = spec.cnames || [];
+    const defColor = (i) => (spec.kind === "contingency" ? CHART_COLORS[i % CHART_COLORS.length] : chartColor);
     return (
       <div style={{ marginTop: 12 }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
@@ -726,16 +728,16 @@ function AnaliseQuantitativa({ active = true }) {
             {(spec.kind === "bars" || spec.kind === "hist" || spec.kind === "contingency") && <label style={{ ...chk, display: "block" }}>Largura das barras (px)<input type="number" min="2" value={barSize} placeholder="auto" onChange={(e) => setBarSize(e.target.value)} style={inp} /></label>}
             <label style={{ ...chk, display: "block" }}>Espessura da linha<input type="number" min="1" max="8" value={lineW} onChange={(e) => setLineW(Number(e.target.value) || 2)} style={inp} /></label>
             {spec.kind === "scatter" && <label style={{ ...chk, display: "block" }}>Tamanho dos pontos<input type="number" min="10" max="400" step="10" value={pointSize} onChange={(e) => setPointSize(Number(e.target.value) || 70)} style={inp} /></label>}
-            {spec.kind === "bars" && groupNames.length > 0 && (
+            {cnames.length > 0 && (
               <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e3e9ee", paddingTop: 8 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#9aa7b2", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Cor por grupo / barra</div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#9aa7b2", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>{spec.kind === "contingency" ? "Cor por categoria" : "Cor por grupo / barra"}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-                  {groupNames.map((nm) => <label key={nm} style={chk}><input type="color" value={barColors[nm] || chartColor} onChange={(e) => setBarColors((s) => ({ ...s, [nm]: e.target.value }))} style={cbox} /> {nm}</label>)}
+                  {cnames.map((nm, i) => <label key={nm} style={chk}><input type="color" value={barColors[nm] || defColor(i)} onChange={(e) => setBarColors((s) => ({ ...s, [nm]: e.target.value }))} style={cbox} /> {nm}</label>)}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 6 }}>
                   <span style={{ fontSize: 11, color: "#9aa7b2" }}>Paleta:</span>
-                  {Object.keys(PALETTES).map((pn) => <button key={pn} onClick={() => { const cols = PALETTES[pn]; setBarColors(Object.fromEntries(groupNames.map((nm, i) => [nm, cols[i % cols.length]]))); setChartColor(cols[0]); }} style={ctrl} title={"aplicar paleta " + pn}>{pn}</button>)}
-                  <button onClick={() => setBarColors({})} style={ctrl} title="usar uma cor única para todas as barras">cor única</button>
+                  {Object.keys(PALETTES).map((pn) => <button key={pn} onClick={() => { const cols = PALETTES[pn]; setBarColors(Object.fromEntries(cnames.map((nm, i) => [nm, cols[i % cols.length]]))); if (spec.kind !== "contingency") setChartColor(cols[0]); }} style={ctrl} title={"aplicar paleta " + pn}>{pn}</button>)}
+                  <button onClick={() => setBarColors({})} style={ctrl} title="voltar às cores padrão">cores padrão</button>
                 </div>
               </div>
             )}
