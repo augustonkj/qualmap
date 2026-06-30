@@ -318,3 +318,51 @@ export function runsTest(raw) {
   const z = (runs - mu) / sigma; const p = 2 * (1 - normalCDF(Math.abs(z)));
   return { test: "Teste de aleatoriedade (runs / Wald-Wolfowitz)", n, runs, n1, n2, expected: mu, z, p };
 }
+
+/* ============ pressupostos ============ */
+const median = (a) => quantile([...a].sort((x, y) => x - y), 0.5);
+// Shapiro-Wilk (algoritmo de Royston, 1992) — testa normalidade. H0: dados ~ Normal.
+export function shapiroWilk(raw) {
+  const x = toNums(raw).slice().sort((a, b) => a - b); const n = x.length;
+  if (n < 3) return { error: "Shapiro-Wilk: mínimo de 3 observações." };
+  if (n > 5000) return { error: "Shapiro-Wilk: máximo de 5000 observações." };
+  const m = []; for (let i = 1; i <= n; i++) m.push(normalInv((i - 0.375) / (n + 0.25)));
+  const m2 = m.reduce((s, v) => s + v * v, 0); const rm = Math.sqrt(m2); const u = 1 / Math.sqrt(n);
+  const a = new Array(n).fill(0);
+  const an = -2.706056 * u ** 5 + 4.434685 * u ** 4 - 2.07119 * u ** 3 - 0.147981 * u ** 2 + 0.221157 * u + m[n - 1] / rm;
+  if (n === 3) { a[0] = -Math.SQRT1_2; a[1] = 0; a[2] = Math.SQRT1_2; } // pesos exatos
+  else if (n <= 5) {
+    a[n - 1] = an; a[0] = -an;
+    const phi = (m2 - 2 * m[n - 1] ** 2) / (1 - 2 * an * an);
+    for (let i = 1; i < n - 1; i++) a[i] = phi > 0 ? m[i] / Math.sqrt(phi) : 0;
+  } else {
+    const an1 = -3.582633 * u ** 5 + 5.682633 * u ** 4 - 1.752461 * u ** 3 - 0.293762 * u ** 2 + 0.042981 * u + m[n - 2] / rm;
+    a[n - 1] = an; a[n - 2] = an1; a[0] = -an; a[1] = -an1;
+    const phi = (m2 - 2 * m[n - 1] ** 2 - 2 * m[n - 2] ** 2) / (1 - 2 * an * an - 2 * an1 * an1);
+    for (let i = 2; i < n - 2; i++) a[i] = m[i] / Math.sqrt(phi);
+  }
+  const xbar = mean(x); let num = 0, den = 0;
+  for (let i = 0; i < n; i++) { num += a[i] * x[i]; den += (x[i] - xbar) ** 2; }
+  if (den === 0) return { error: "Sem variabilidade (todos os valores iguais)." };
+  const W = num * num / den;
+  let p;
+  if (n === 3) p = Math.min(1, Math.max(0, (6 / Math.PI) * (Math.asin(Math.sqrt(W)) - Math.asin(Math.sqrt(0.75))))); // CDF exata (rejeita p/ W pequeno)
+  else {
+    let mu_, sig, w1;
+    if (n <= 11) { const g = -2.273 + 0.459 * n; w1 = -Math.log(g - Math.log(1 - W)); mu_ = 0.544 - 0.39978 * n + 0.025054 * n * n - 0.0006714 * n * n * n; sig = Math.exp(1.3822 - 0.77857 * n + 0.062767 * n * n - 0.0020322 * n * n * n); }
+    else { const ln = Math.log(n); w1 = Math.log(1 - W); mu_ = -1.5861 - 0.31082 * ln - 0.083751 * ln * ln + 0.0038915 * ln * ln * ln; sig = Math.exp(-0.4803 - 0.082676 * ln + 0.0030302 * ln * ln); }
+    p = Math.min(1, Math.max(0, 1 - normalCDF((w1 - mu_) / sig)));
+  }
+  return { test: "Shapiro-Wilk", n, W, p };
+}
+// Levene / Brown-Forsythe (centro na mediana) — testa homogeneidade de variâncias. H0: variâncias iguais.
+export function levene(groups, names) {
+  const G = groups.map(toNums).filter((g) => g.length >= 2); const k = G.length;
+  if (k < 2) return { error: "Levene: ao menos 2 grupos com ≥2 observações." };
+  const z = G.map((g) => { const c = median(g); return g.map((v) => Math.abs(v - c)); });
+  const all = z.flat(); const N = all.length; const gm = mean(all);
+  let ssb = 0, ssw = 0; z.forEach((zi) => { const mi = mean(zi); ssb += zi.length * (mi - gm) ** 2; ssw += sum(zi.map((v) => (v - mi) ** 2)); });
+  const df1 = k - 1, df2 = N - k; if (ssw === 0) return { error: "Sem variabilidade interna nos grupos." };
+  const W = (ssb / df1) / (ssw / df2); const p = fSF(W, df1, df2);
+  return { test: "Levene (Brown-Forsythe, mediana)", W, df1, df2, p, k, N };
+}
