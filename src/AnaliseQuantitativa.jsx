@@ -535,6 +535,19 @@ function AnaliseQuantitativa({ active = true }) {
     return { r1, r2, tbl };
   };
 
+  // checagem de pressupostos (normalidade por grupo + homogeneidade) com recomendação
+  const buildAssump = (groupsArr, groupNames, kind) => {
+    const norm = groupsArr.map((g, i) => { const r = ST.shapiroWilk(g); return r.error ? null : { name: groupNames[i], n: g.length, W: r.W, p: r.p }; }).filter(Boolean);
+    let homo = null;
+    if (groupsArr.length >= 2) { const lv = ST.levene(groupsArr, groupNames); if (!lv.error) homo = { W: lv.W, p: lv.p }; }
+    const anyNonNormal = norm.some((z) => z.p < 0.05); const heteroSig = homo && homo.p < 0.05;
+    let recommend = "";
+    if (kind === "t2") recommend = anyNonNormal ? "Algum grupo desvia da normalidade — considere Mann-Whitney (não-paramétrico)." : heteroSig ? "Variâncias desiguais — o t de Welch (padrão aqui) é apropriado." : "Pressupostos atendidos — o teste t é adequado.";
+    else if (kind === "anova") recommend = anyNonNormal ? "Algum grupo desvia da normalidade — considere Kruskal-Wallis ou o teste da mediana." : heteroSig ? "Variâncias desiguais — interprete com cautela (Welch-ANOVA / Games-Howell)." : "Pressupostos atendidos — a ANOVA é adequada.";
+    else if (kind === "t1") recommend = anyNonNormal ? "A variável desvia da normalidade — com amostra pequena, considere um teste não-paramétrico." : "Compatível com a normalidade — o t para uma amostra é adequado.";
+    else if (kind === "tp") recommend = anyNonNormal ? "As diferenças desviam da normalidade — considere Wilcoxon (postos sinalizados)." : "Diferenças compatíveis com normal — o t pareado é adequado.";
+    return { normality: norm, homogeneity: homo, recommend };
+  };
   const calcular = () => {
     setErr("");
     try {
@@ -547,8 +560,10 @@ function AnaliseQuantitativa({ active = true }) {
         res = ST.ciMean(col(vars.num), c);
       } else if (testKey === "t1") {
         res = ST.oneSampleT(col(vars.num), parseFloat(String(mu0).replace(",", ".")) || 0, c);
+        if (res && !res.error) res.assump = buildAssump([ST.toNums(col(vars.num))], [vars.num || "variável"], "t1");
       } else if (testKey === "tp") {
         res = ST.pairedT(col(vars.num), col(vars.num2), c);
+        if (res && !res.error) { const X = ST.toNums(col(vars.num)), Y = ST.toNums(col(vars.num2)); res.assump = buildAssump([X.map((v, i) => v - Y[i])], ["diferenças"], "tp"); }
       } else if (testKey === "pearson") {
         res = ST.pearson(col(vars.num), col(vars.num2), c);
       } else if (testKey === "spearman") {
@@ -576,12 +591,13 @@ function AnaliseQuantitativa({ active = true }) {
             }
           }
           res.posthoc = pairs; res.posthocMethod = posthocMethod;
+          if (!res.error) res.assump = buildAssump(order.map((k) => map[k]), order, "anova");
         }
         else if (testKey === "median") res = ST.medianTest(order.map((k) => map[k]), order);
         else {
           if (order.length > 2) throw new Error("Selecione um fator com exatamente 2 grupos (há " + order.length + ").");
           const A = map[order[0]], B = map[order[1]];
-          if (testKey === "t2") res = { ...ST.twoSampleT(A, B, { welch: true, conf: c }), g1: order[0], g2: order[1] };
+          if (testKey === "t2") { res = { ...ST.twoSampleT(A, B, { welch: true, conf: c }), g1: order[0], g2: order[1] }; if (!res.error) res.assump = buildAssump([A, B], [order[0], order[1]], "t2"); }
           else if (testKey === "mw") res = { ...ST.mannWhitney(A, B), g1: order[0], g2: order[1] };
           else if (testKey === "ks2") res = { ...ST.ks2(A, B), g1: order[0], g2: order[1] };
           else res = { ...ST.waldWolfowitz2(A, B), g1: order[0], g2: order[1] };
@@ -932,6 +948,30 @@ function Sig({ p }) {
   </div>;
 }
 
+function EffectSize({ kind, value, extra }) {
+  if (!Number.isFinite(value)) return null;
+  const a = Math.abs(value);
+  const band = (cuts, labels) => { for (let i = 0; i < cuts.length; i++) if (a < cuts[i]) return labels[i]; return labels[labels.length - 1]; };
+  let label, mag;
+  if (kind === "d") { label = "d de Cohen"; mag = band([0.2, 0.5, 0.8], ["insignificante", "pequeno", "médio", "grande"]); }
+  else if (kind === "r" || kind === "rho") { label = kind === "r" ? "r" : "ρ"; mag = band([0.1, 0.3, 0.5], ["insignificante", "pequeno", "médio", "grande"]); }
+  else if (kind === "eta2" || kind === "omega2") { label = kind === "eta2" ? "η²" : "ω²"; mag = band([0.01, 0.06, 0.14], ["insignificante", "pequeno", "médio", "grande"]); }
+  else if (kind === "cramer") { label = "V de Cramér"; mag = band([0.1, 0.3, 0.5], ["insignificante", "pequeno", "médio", "grande"]); }
+  else return null;
+  return <div style={{ marginTop: 6, fontSize: 12, color: "#34495e" }}>Tamanho do efeito: <strong>{fmt(value, 3)}</strong> ({label}{extra ? ", " + extra : ""}) — magnitude <strong>{mag}</strong>.</div>;
+}
+function Assumptions({ a }) {
+  if (!a) return null;
+  const bad = (p) => Number.isFinite(p) && p < 0.05;
+  return (
+    <div style={{ marginTop: 10, fontSize: 12, padding: "8px 10px", borderRadius: 6, background: "#f7f9fb", border: "1px solid #e3e9ee" }}>
+      <div style={{ fontWeight: 700, color: "#5a6b7a", marginBottom: 4 }}>Pressupostos</div>
+      {a.normality && a.normality.map((nz, i) => <div key={i} style={{ color: bad(nz.p) ? "#b06a1f" : "#46555f" }}>Normalidade ({nz.name}): Shapiro-Wilk W = {fmt(nz.W, 3)}, p {fmtP(nz.p)} — {bad(nz.p) ? "desvio da normalidade" : "compatível com normal"}{nz.n < 8 ? " (n pequeno: pouca potência)" : ""}.</div>)}
+      {a.homogeneity && <div style={{ color: bad(a.homogeneity.p) ? "#b06a1f" : "#46555f" }}>Homogeneidade de variâncias: Levene F = {fmt(a.homogeneity.W, 3)}, p {fmtP(a.homogeneity.p)} — {bad(a.homogeneity.p) ? "variâncias desiguais" : "variâncias homogêneas"}.</div>}
+      {a.recommend && <div style={{ marginTop: 4, color: "#1f7a8c" }}><strong>Sugestão:</strong> {a.recommend}</div>}
+    </div>
+  );
+}
 function Result({ data }) {
   const { key, res } = data;
   if (key === "describe") return (
@@ -951,18 +991,18 @@ function Result({ data }) {
     <div>
       <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1f7a8c", marginBottom: 8 }}>{res.test}</div>
       {key === "ci" && <><Row k="Média" v={fmt(res.mean, 4)} /><Row k={`IC ${Math.round(res.conf * 100)}%`} v={`[${fmt(res.lo, 4)} ; ${fmt(res.hi, 4)}]`} /><Row k="Erro-padrão" v={fmt(res.se, 4)} /><Row k="gl" v={res.df} /></>}
-      {key === "t1" && <><Row k="Média" v={fmt(res.mean, 4)} /><Row k="μ₀" v={fmt(res.mu0, 4)} /><Row k="DP" v={fmt(res.sd, 4)} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={res.df} /><Row k="p (bicaudal)" v={fmtP(res.p)} /><Row k={`IC ${Math.round(res.conf * 100)}% da média`} v={`[${fmt(res.ci[0], 3)} ; ${fmt(res.ci[1], 3)}]`} /><Row k="d de Cohen" v={fmt(res.d, 3)} /><Sig p={res.p} /></>}
-      {(key === "t2") && <><Row k={`Média ${res.g1}`} v={`${fmt(res.mean1, 3)} (n=${res.n1})`} /><Row k={`Média ${res.g2}`} v={`${fmt(res.mean2, 3)} (n=${res.n2})`} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={fmt(res.df, 2)} /><Row k="p (bicaudal)" v={fmtP(res.p)} /><Row k="d de Cohen" v={fmt(res.d, 3)} /><Sig p={res.p} /></>}
-      {key === "tp" && <><Row k="Média 1" v={fmt(res.mean1, 3)} /><Row k="Média 2" v={fmt(res.mean2, 3)} /><Row k="Média das diferenças" v={fmt(res.meanDiff, 4)} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={res.df} /><Row k="p (bicaudal)" v={fmtP(res.p)} /><Row k="d de Cohen" v={fmt(res.d, 3)} /><Sig p={res.p} /></>}
-      {key === "anova" && <><Row k="F" v={fmt(res.F, 4)} /><Row k="gl" v={`${res.dfb} ; ${res.dfw}`} /><Row k="p" v={fmtP(res.p)} /><Row k="η² (eta²)" v={fmt(res.eta2, 3)} /><div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr>{["Grupo", "n", "Média", "DP"].map((h) => <th key={h} style={T.th}>{h}</th>)}</tr></thead><tbody>{res.groups.map((g) => <tr key={g.name}><td style={T.td}>{g.name}</td><td style={T.td}>{g.n}</td><td style={T.td}>{fmt(g.mean, 3)}</td><td style={T.td}>{fmt(g.sd, 3)}</td></tr>)}</tbody></table></div><Sig p={res.p} />{res.posthoc && res.posthoc.length > 0 && <div style={{ marginTop: 10 }}><div style={{ fontSize: 11.5, fontWeight: 700, color: "#5a6b7a", marginBottom: 4 }}>Pós-hoc — quais grupos diferem <span style={{ fontWeight: 400, color: "#9aa7b2" }}>({res.posthocMethod === "tukey" ? "Tukey HSD" : "t de Welch · Bonferroni"})</span></div><div style={{ overflowX: "auto" }}><table style={{ borderCollapse: "collapse" }}><thead><tr>{["Par", "p", "p ajustado", ""].map((h) => <th key={h} style={T.th}>{h}</th>)}</tr></thead><tbody>{res.posthoc.map((pp, i) => <tr key={i}><td style={T.td}>{pp.a} × {pp.b}</td><td style={T.td}>{fmtP(pp.p)}</td><td style={T.td}>{fmtP(pp.padj)}</td><td style={{ ...T.td, fontWeight: 700, color: pp.padj < 0.05 ? "#2e7d4f" : "#9aa7b2" }}>{pp.padj < 0.001 ? "***" : pp.padj < 0.01 ? "**" : pp.padj < 0.05 ? "*" : "n.s."}</td></tr>)}</tbody></table></div></div>}</>}
-      {key === "pearson" && <><Row k="r" v={fmt(res.r, 4)} /><Row k="r² (variância explicada)" v={fmt(res.r2, 4)} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><Row k={`IC ${Math.round(res.conf * 100)}% de r`} v={`[${fmt(res.ci[0], 3)} ; ${fmt(res.ci[1], 3)}]`} /><Sig p={res.p} /></>}
-      {key === "spearman" && <><Row k="ρ (rho)" v={fmt(res.rho, 4)} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><Sig p={res.p} /></>}
-      {key === "wilcoxon" && <><Row k="W⁺" v={fmt(res.Wplus, 1)} /><Row k="W⁻" v={fmt(res.Wminus, 1)} /><Row k="W" v={fmt(res.W, 1)} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p (aprox. normal)" v={fmtP(res.p)} /><Row k="n (pares ≠ 0)" v={res.n} /><Sig p={res.p} /></>}
-      {key === "mw" && <><Row k={`grupos`} v={`${res.g1} (n=${res.n1}) vs ${res.g2} (n=${res.n2})`} /><Row k="U" v={fmt(res.U, 1)} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p (aprox. normal)" v={fmtP(res.p)} /><Sig p={res.p} /></>}
+      {key === "t1" && <><Row k="Média" v={fmt(res.mean, 4)} /><Row k="μ₀" v={fmt(res.mu0, 4)} /><Row k="DP" v={fmt(res.sd, 4)} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={res.df} /><Row k="p (bicaudal)" v={fmtP(res.p)} /><Row k={`IC ${Math.round(res.conf * 100)}% da média`} v={`[${fmt(res.ci[0], 3)} ; ${fmt(res.ci[1], 3)}]`} /><Row k="d de Cohen" v={fmt(res.d, 3)} /><Sig p={res.p} /><EffectSize kind="d" value={res.d} /><Assumptions a={res.assump} /></>}
+      {(key === "t2") && <><Row k={`Média ${res.g1}`} v={`${fmt(res.mean1, 3)} (n=${res.n1})`} /><Row k={`Média ${res.g2}`} v={`${fmt(res.mean2, 3)} (n=${res.n2})`} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={fmt(res.df, 2)} /><Row k="p (bicaudal)" v={fmtP(res.p)} /><Row k="d de Cohen" v={fmt(res.d, 3)} /><Sig p={res.p} /><EffectSize kind="d" value={res.d} /><Assumptions a={res.assump} /></>}
+      {key === "tp" && <><Row k="Média 1" v={fmt(res.mean1, 3)} /><Row k="Média 2" v={fmt(res.mean2, 3)} /><Row k="Média das diferenças" v={fmt(res.meanDiff, 4)} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={res.df} /><Row k="p (bicaudal)" v={fmtP(res.p)} /><Row k="d de Cohen" v={fmt(res.d, 3)} /><Sig p={res.p} /><EffectSize kind="d" value={res.d} extra="dz" /><Assumptions a={res.assump} /></>}
+      {key === "anova" && <><Row k="F" v={fmt(res.F, 4)} /><Row k="gl" v={`${res.dfb} ; ${res.dfw}`} /><Row k="p" v={fmtP(res.p)} /><Row k="η² (eta²)" v={fmt(res.eta2, 3)} /><div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr>{["Grupo", "n", "Média", "DP"].map((h) => <th key={h} style={T.th}>{h}</th>)}</tr></thead><tbody>{res.groups.map((g) => <tr key={g.name}><td style={T.td}>{g.name}</td><td style={T.td}>{g.n}</td><td style={T.td}>{fmt(g.mean, 3)}</td><td style={T.td}>{fmt(g.sd, 3)}</td></tr>)}</tbody></table></div><Sig p={res.p} />{res.posthoc && res.posthoc.length > 0 && <div style={{ marginTop: 10 }}><div style={{ fontSize: 11.5, fontWeight: 700, color: "#5a6b7a", marginBottom: 4 }}>Pós-hoc — quais grupos diferem <span style={{ fontWeight: 400, color: "#9aa7b2" }}>({res.posthocMethod === "tukey" ? "Tukey HSD" : "t de Welch · Bonferroni"})</span></div><div style={{ overflowX: "auto" }}><table style={{ borderCollapse: "collapse" }}><thead><tr>{["Par", "p", "p ajustado", ""].map((h) => <th key={h} style={T.th}>{h}</th>)}</tr></thead><tbody>{res.posthoc.map((pp, i) => <tr key={i}><td style={T.td}>{pp.a} × {pp.b}</td><td style={T.td}>{fmtP(pp.p)}</td><td style={T.td}>{fmtP(pp.padj)}</td><td style={{ ...T.td, fontWeight: 700, color: pp.padj < 0.05 ? "#2e7d4f" : "#9aa7b2" }}>{pp.padj < 0.001 ? "***" : pp.padj < 0.01 ? "**" : pp.padj < 0.05 ? "*" : "n.s."}</td></tr>)}</tbody></table></div></div>}<EffectSize kind="eta2" value={res.eta2} extra={"ω² = " + fmt((res.ssb - res.dfb * res.msw) / (res.ssb + res.ssw + res.msw), 3)} /><Assumptions a={res.assump} /></>}
+      {key === "pearson" && <><Row k="r" v={fmt(res.r, 4)} /><Row k="r² (variância explicada)" v={fmt(res.r2, 4)} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><Row k={`IC ${Math.round(res.conf * 100)}% de r`} v={`[${fmt(res.ci[0], 3)} ; ${fmt(res.ci[1], 3)}]`} /><Sig p={res.p} /><EffectSize kind="r" value={res.r} /></>}
+      {key === "spearman" && <><Row k="ρ (rho)" v={fmt(res.rho, 4)} /><Row k="t" v={fmt(res.t, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><Sig p={res.p} /><EffectSize kind="rho" value={res.rho} /></>}
+      {key === "wilcoxon" && <><Row k="W⁺" v={fmt(res.Wplus, 1)} /><Row k="W⁻" v={fmt(res.Wminus, 1)} /><Row k="W" v={fmt(res.W, 1)} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p (aprox. normal)" v={fmtP(res.p)} /><Row k="n (pares ≠ 0)" v={res.n} /><Sig p={res.p} /><EffectSize kind="r" value={Math.abs(res.z) / Math.sqrt(res.n)} extra="r = |z|/√n" /></>}
+      {key === "mw" && <><Row k={`grupos`} v={`${res.g1} (n=${res.n1}) vs ${res.g2} (n=${res.n2})`} /><Row k="U" v={fmt(res.U, 1)} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p (aprox. normal)" v={fmtP(res.p)} /><Sig p={res.p} /><EffectSize kind="r" value={Math.abs(res.z) / Math.sqrt(res.n1 + res.n2)} extra="r = |z|/√N" /></>}
       {key === "runs" && <><Row k="Nº de sequências (runs)" v={res.runs} /><Row k="Esperado" v={fmt(res.expected, 2)} /><Row k="Acima / abaixo da mediana" v={`${res.n1} / ${res.n2}`} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p" v={fmtP(res.p)} /><div style={{ marginTop: 10, fontSize: 12.5, padding: "8px 10px", borderRadius: 6, background: "#f2f5f7", border: "1px solid #e3e9ee" }}>{res.p < 0.05 ? "Sequência provavelmente não aleatória (p < 0,05)." : "Compatível com aleatoriedade (p ≥ 0,05)."}</div></>}
-      {key === "chi2" && <><Row k="χ²" v={fmt(res.chi2, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><Row k="N" v={res.n} /><Row k="V de Cramér" v={fmt(res.cramerV, 3)} /><Row k="Menor freq. esperada" v={fmt(res.minExpected, 2)} />{res.minExpected < 5 && <div style={{ fontSize: 11.5, color: "#b06a1f", marginTop: 4 }}>Atenção: frequência esperada &lt; 5 — o χ² pode ser pouco confiável (considere Fisher).</div>}<div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr><th style={T.th}></th>{res.r2.map((c) => <th key={c} style={T.th}>{c}</th>)}</tr></thead><tbody>{res.tbl.map((row, i) => <tr key={i}><td style={T.td}><strong>{res.r1[i]}</strong></td>{row.map((v, j) => <td key={j} style={T.td}>{v}</td>)}</tr>)}</tbody></table></div><Sig p={res.p} /></>}
+      {key === "chi2" && <><Row k="χ²" v={fmt(res.chi2, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><Row k="N" v={res.n} /><Row k="V de Cramér" v={fmt(res.cramerV, 3)} /><Row k="Menor freq. esperada" v={fmt(res.minExpected, 2)} />{res.minExpected < 5 && <div style={{ fontSize: 11.5, color: "#b06a1f", marginTop: 4 }}>Atenção: frequência esperada &lt; 5 — o χ² pode ser pouco confiável (considere Fisher).</div>}<div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr><th style={T.th}></th>{res.r2.map((c) => <th key={c} style={T.th}>{c}</th>)}</tr></thead><tbody>{res.tbl.map((row, i) => <tr key={i}><td style={T.td}><strong>{res.r1[i]}</strong></td>{row.map((v, j) => <td key={j} style={T.td}>{v}</td>)}</tr>)}</tbody></table></div><Sig p={res.p} /><EffectSize kind="cramer" value={res.cramerV} /></>}
       {key === "anova2" && <><div style={{ fontSize: 12, color: "#6b7c8a", marginBottom: 6 }}>{res.balanced ? "Delineamento balanceado." : "Atenção: delineamento NÃO balanceado — as somas de quadrados são aproximadas."}</div><div style={{ overflowX: "auto" }}><table style={{ borderCollapse: "collapse", width: "100%" }}><thead><tr>{["Fonte", "SQ", "gl", "QM", "F", "p"].map((h) => <th key={h} style={T.th}>{h}</th>)}</tr></thead><tbody>{[["Fator A (" + res.nameA + ")", res.A], ["Fator B (" + res.nameB + ")", res.B], ["Interação A×B", res.AB]].map(([nm, r]) => <tr key={nm}><td style={T.td}>{nm}</td><td style={T.td}>{fmt(r.ss, 2)}</td><td style={T.td}>{r.df}</td><td style={T.td}>{fmt(r.ms, 2)}</td><td style={T.td}>{fmt(r.F, 3)}</td><td style={T.td}>{fmtP(r.p)}</td></tr>)}<tr><td style={T.td}>Resíduo</td><td style={T.td}>{fmt(res.resid.ss, 2)}</td><td style={T.td}>{res.resid.df}</td><td style={T.td}>{fmt(res.resid.ms, 2)}</td><td style={T.td}>—</td><td style={T.td}>—</td></tr></tbody></table></div><div style={{ fontSize: 12, marginTop: 8, color: "#34495e" }}>Interação {res.AB.p < 0.05 ? "significativa" : "não significativa"} (p {fmtP(res.AB.p)}).</div></>}
-      {key === "fisher" && <><Row k="Razão de chances (OR)" v={Number.isFinite(res.oddsRatio) ? fmt(res.oddsRatio, 3) : "∞"} /><Row k="p exato (bicaudal)" v={fmtP(res.p)} /><div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr><th style={T.th}></th>{res.r2.map((c) => <th key={c} style={T.th}>{c}</th>)}</tr></thead><tbody>{res.tbl.map((row, i) => <tr key={i}><td style={T.td}><strong>{res.r1[i]}</strong></td>{row.map((v, j) => <td key={j} style={T.td}>{v}</td>)}</tr>)}</tbody></table></div><Sig p={res.p} /></>}
+      {key === "fisher" && <><Row k="Razão de chances (OR)" v={Number.isFinite(res.oddsRatio) ? fmt(res.oddsRatio, 3) : "∞"} /><Row k="p exato (bicaudal)" v={fmtP(res.p)} /><div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr><th style={T.th}></th>{res.r2.map((c) => <th key={c} style={T.th}>{c}</th>)}</tr></thead><tbody>{res.tbl.map((row, i) => <tr key={i}><td style={T.td}><strong>{res.r1[i]}</strong></td>{row.map((v, j) => <td key={j} style={T.td}>{v}</td>)}</tr>)}</tbody></table></div><Sig p={res.p} />{(() => { const [a, b] = res.tbl[0], [c, d] = res.tbl[1]; const den = Math.sqrt((a + b) * (c + d) * (a + c) * (b + d)); return den ? <EffectSize kind="cramer" value={Math.abs(a * d - b * c) / den} extra="φ" /> : null; })()}</>}
       {key === "median" && <><Row k="Mediana global" v={fmt(res.median, 3)} /><Row k="χ²" v={fmt(res.chi2, 4)} /><Row k="gl" v={res.df} /><Row k="p" v={fmtP(res.p)} /><div style={{ overflowX: "auto", marginTop: 8 }}><table style={{ borderCollapse: "collapse" }}><thead><tr>{["Grupo", "n", "Acima da mediana"].map((h) => <th key={h} style={T.th}>{h}</th>)}</tr></thead><tbody>{res.groups.map((g) => <tr key={g.name}><td style={T.td}>{g.name}</td><td style={T.td}>{g.n}</td><td style={T.td}>{g.above}</td></tr>)}</tbody></table></div><Sig p={res.p} /></>}
       {key === "ks2" && <><Row k={`grupos`} v={`${res.g1} (n=${res.n1}) vs ${res.g2} (n=${res.n2})`} /><Row k="D (máx. diferença das ECDF)" v={fmt(res.D, 4)} /><Row k="p (aprox.)" v={fmtP(res.p)} /><Sig p={res.p} /></>}
       {key === "ww2" && <><Row k={`grupos`} v={`${res.g1} (n=${res.n1}) vs ${res.g2} (n=${res.n2})`} /><Row k="Nº de sequências (runs)" v={res.runs} /><Row k="Esperado" v={fmt(res.expected, 2)} /><Row k="z" v={fmt(res.z, 4)} /><Row k="p" v={fmtP(res.p)} /><Sig p={res.p} /></>}
