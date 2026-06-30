@@ -362,15 +362,17 @@ function AnaliseQuantitativa({ active = true }) {
   const [showSig, setShowSig] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
   const [sigColor, setSigColor] = useState("#34495e");
+  const [sigLegend, setSigLegend] = useState("");
   const [posthocMethod, setPosthocMethod] = useState("welch");
   const [shownPairs, setShownPairs] = useState(() => new Set());
   const [chartOpts, setChartOpts] = useState(false);
-  useEffect(() => { setChartTitle(""); setXLabel(""); setYLabel(""); setChartType(""); }, [result]); // volta ao padrão ao recalcular
-  // ao mudar o resultado: mostra por padrão os pares significativos da ANOVA
+  const resultKey = result ? result.key : null;
+  useEffect(() => { setChartTitle(""); setXLabel(""); setYLabel(""); setChartType(""); setSigLegend(""); }, [resultKey]); // só zera ao trocar de teste (não a cada recálculo)
+  // ao trocar de teste: mostra por padrão os pares significativos da ANOVA (preserva a escolha ao recalcular/trocar método)
   useEffect(() => {
     if (result && result.key === "anova" && result.res.posthoc) setShownPairs(new Set(result.res.posthoc.filter((p) => p.padj < 0.05).map((p) => p.a + "|" + p.b)));
     else setShownPairs(new Set());
-  }, [result]);
+  }, [resultKey]);
   // ao trocar o método de pós-hoc, recalcula a ANOVA atual
   useEffect(() => { if (result && result.key === "anova") calcular(); }, [posthocMethod]);
 
@@ -397,7 +399,7 @@ function AnaliseQuantitativa({ active = true }) {
     const w = props.width || 320, h = props.height || 220, off = props.offset || { left: 40, width: w - 60 };
     const s = stars(pValue);
     const pTxt = pValue < 0.001 ? "p < 0,001" : "p = " + pValue.toFixed(4).replace(".", ",");
-    const legend = (s === "n.s." ? "n.s. (não significativo)" : s) + "  ·  " + pTxt + "   ( ∗ p<0,05 · ∗∗ p<0,01 · ∗∗∗ p<0,001 )";
+    const legend = sigLegend || ((s === "n.s." ? "n.s. (não significativo)" : s) + "  ·  " + pTxt + "   ( ∗ p<0,05 · ∗∗ p<0,01 · ∗∗∗ p<0,001 )");
     const els = [];
     const bracket = (x1, x2, y, st, key) => { const c = (x1 + x2) / 2; els.push(<line key={key + "b"} x1={x1} y1={y} x2={x2} y2={y} stroke={sigColor} strokeWidth={1.2} />, <line key={key + "1"} x1={x1} y1={y} x2={x1} y2={y + 5} stroke={sigColor} strokeWidth={1.2} />, <line key={key + "2"} x1={x2} y1={y} x2={x2} y2={y + 5} stroke={sigColor} strokeWidth={1.2} />, <text key={key + "s"} x={c} y={y - 3} textAnchor="middle" fontSize={14} fontWeight={700} fill={sigColor}>{st === "n.s." ? "ns" : st}</text>); };
     // posições exatas das barras pela escala do eixo X (categórico)
@@ -416,7 +418,7 @@ function AnaliseQuantitativa({ active = true }) {
     } else if (result.key === "chi2" || result.key === "fisher") {
       bracket(off.left + off.width * 0.2, off.left + off.width * 0.8, 16, s, "c");
     }
-    els.push(<text key="leg" x={w / 2} y={h - 5} textAnchor="middle" fontSize={11} fontWeight={600} fill={pValue < 0.05 ? "#2e7d4f" : "#7a8b99"}>{legend}</text>);
+    els.push(<text key="leg" x={w / 2} y={h - 5} textAnchor="middle" fontSize={11} fontWeight={600} fill={sigColor}>{legend}</text>);
     return <g>{els}</g>;
   };
 
@@ -649,7 +651,8 @@ function AnaliseQuantitativa({ active = true }) {
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
           <input value={chartTitle} onChange={(e) => setChartTitle(e.target.value)} placeholder={spec.def} title="título do gráfico" style={{ flex: "1 1 140px", minWidth: 110, fontSize: 11.5, padding: "4px 7px", border: "1px solid #cfd6dd", borderRadius: 5 }} />
           {spec.types && spec.types.length > 1 && <select value={chartType || spec.types[0][0]} onChange={(e) => setChartType(e.target.value)} title="tipo de gráfico" style={ctrl}>{spec.types.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}
-          {spec.kind !== "contingency" && <input type="color" value={chartColor} onChange={(e) => setChartColor(e.target.value)} title="cor" style={{ width: 26, height: 24, padding: 0, border: "1px solid #cfd6dd", borderRadius: 5, background: "none", cursor: "pointer" }} />}
+          {spec.kind !== "contingency" && <label title="cor da série" style={{ display: "flex", alignItems: "center", gap: 2 }}><input type="color" value={chartColor} onChange={(e) => setChartColor(e.target.value)} style={{ width: 26, height: 24, padding: 0, border: "1px solid #cfd6dd", borderRadius: 5, background: "none", cursor: "pointer" }} /></label>}
+          {pValue != null && <label title="cor da significância (∗ e legenda)" style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 12, color: "#5a6b7a" }}>∗<input type="color" value={sigColor} onChange={(e) => setSigColor(e.target.value)} style={{ width: 26, height: 24, padding: 0, border: "1px solid #cfd6dd", borderRadius: 5, background: "none", cursor: "pointer" }} /></label>}
           {spec.kind === "hist" && <select value={chartBins} onChange={(e) => setChartBins(Number(e.target.value))} title="nº de classes" style={ctrl}>{[5, 8, 10, 15, 20].map((b) => <option key={b} value={b}>{b} classes</option>)}</select>}
           <button onClick={() => setChartOpts((v) => !v)} style={{ ...ctrl, fontWeight: 600 }} title="mais opções">⚙ {chartOpts ? "▾" : "▸"}</button>
           <button onClick={() => saveChart("png")} style={ctrl} title="salvar como PNG">PNG</button>
@@ -665,10 +668,10 @@ function AnaliseQuantitativa({ active = true }) {
               <label style={chk}><input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Grade</label>
               <label style={chk}><input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} /> Valores</label>
               <label style={chk}><input type="checkbox" checked={showSig} onChange={(e) => setShowSig(e.target.checked)} /> Significância (∗)</label>
-              <label style={chk}>Cor ∗ <input type="color" value={sigColor} onChange={(e) => setSigColor(e.target.value)} style={{ width: 24, height: 22, padding: 0, border: "1px solid #cfd6dd", borderRadius: 4, background: "none", cursor: "pointer" }} /></label>
               {spec.kind === "contingency" && <label style={chk}><input type="checkbox" checked={showLegend} onChange={(e) => setShowLegend(e.target.checked)} /> Legenda</label>}
               <button onClick={() => { setChartW(null); setChartH(220); }} style={{ ...ctrl, marginLeft: "auto" }}>tamanho padrão</button>
             </div>
+            {pValue != null && showSig && <label style={{ ...chk, display: "block", gridColumn: "1 / -1" }}>Texto da legenda de significância<input value={sigLegend} onChange={(e) => setSigLegend(e.target.value)} placeholder={(stars(pValue) === "n.s." ? "n.s. (não significativo)" : stars(pValue)) + "  ·  p" + (pValue < 0.001 ? " < 0,001" : " = " + pValue.toFixed(4).replace(".", ",")) + "   ( ∗ p<0,05 · ∗∗ p<0,01 · ∗∗∗ p<0,001 )"} style={inp} /></label>}
             {result && result.key === "anova" && result.res.posthoc && (
               <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #e3e9ee", paddingTop: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
