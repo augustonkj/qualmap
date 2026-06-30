@@ -255,6 +255,52 @@ const INFO = {
   },
 };
 
+// "Quando usar" cada teste (orientação prática)
+const WHEN = {
+  describe: "Para resumir e descrever uma variável numérica (nota, idade, escore) antes de qualquer teste.",
+  ci: "Para estimar a média da população a partir da amostra, com uma margem de confiança.",
+  t1: "Para comparar a média de um grupo com um valor de referência (uma meta, uma norma).",
+  t2: "Para comparar as médias de dois grupos independentes (ex.: turma A × turma B).",
+  tp: "Para comparar duas medidas dos mesmos sujeitos (ex.: pré-teste × pós-teste).",
+  anova: "Para comparar as médias de três ou mais grupos de uma vez.",
+  anova2: "Para avaliar o efeito de dois fatores e a interação entre eles (ex.: método × turno).",
+  pearson: "Para medir a associação linear entre duas variáveis numéricas (ex.: horas de estudo × nota).",
+  spearman: "Como Pearson, mas para dados ordinais ou sem normalidade (associação por postos).",
+  cronbach: "Para avaliar a consistência interna de uma escala/questionário (vários itens medindo o mesmo construto).",
+  mw: "Alternativa não paramétrica ao t de 2 grupos (dados ordinais ou sem normalidade).",
+  wilcoxon: "Alternativa não paramétrica ao t pareado (pré × pós sem normalidade).",
+  chi2: "Para verificar associação entre duas variáveis categóricas (ex.: sexo × preferência).",
+  fisher: "Como o qui-quadrado, mas para tabelas 2×2 com poucos casos.",
+  median: "Para comparar a tendência central de 2+ grupos contando acima/abaixo da mediana.",
+  ks2: "Para verificar se duas amostras vêm da mesma distribuição (posição, dispersão, forma).",
+  ww2: "Para verificar se duas amostras diferem em qualquer aspecto (teste de sequências).",
+  runs: "Para verificar se uma sequência de valores é aleatória.",
+  moses: "Para detectar reações extremas de um grupo (espalhamento) frente a um controle.",
+};
+
+// exemplo carregável por teste: dados + seleção de variáveis (+ parâmetros)
+const EX = {
+  describe: { d: "nota\n7,5\n8\n6\n9\n7\n5,5\n8,5\n6,5", v: { items: ["nota"] } },
+  ci: { d: "nota\n7,5\n8\n6\n9\n7\n5,5\n8,5\n6,5", v: { num: "nota" } },
+  t1: { d: "nota\n7,5\n8\n6\n9\n7\n5,5\n8,5\n6,5", v: { num: "nota" }, mu0: "7" },
+  t2: { d: "grupo\tnota\nA\t7\nA\t8\nA\t6\nA\t7\nB\t5\nB\t6\nB\t5\nB\t4", v: { num: "nota", group: "grupo" } },
+  tp: { d: "pre\tpos\n5\t7\n6\t8\n4\t6\n5\t7\n6\t7\n4\t6", v: { num: "pre", num2: "pos" } },
+  anova: { d: "metodo\tnota\nA\t6\nA\t7\nA\t6\nB\t7\nB\t8\nB\t7\nC\t5\nC\t6\nC\t5", v: { num: "nota", group: "metodo" } },
+  anova2: { d: "metodo\tturno\tnota\nA\tmanha\t7\nA\tmanha\t8\nA\ttarde\t6\nA\ttarde\t7\nB\tmanha\t5\nB\tmanha\t6\nB\ttarde\t4\nB\ttarde\t5", v: { num: "nota", groupA: "metodo", groupB: "turno" } },
+  pearson: { d: "horas\tnota\n1\t5\n2\t6\n3\t6\n4\t7\n5\t8\n6\t9", v: { num: "horas", num2: "nota" } },
+  spearman: { d: "horas\tnota\n1\t5\n2\t6\n3\t6\n4\t7\n5\t8\n6\t9", v: { num: "horas", num2: "nota" } },
+  cronbach: { d: "i1\ti2\ti3\ti4\n4\t5\t4\t5\n3\t3\t4\t3\n5\t5\t5\t4\n2\t3\t2\t3\n4\t4\t5\t4\n3\t4\t3\t4", v: { items: ["i1", "i2", "i3", "i4"] } },
+  mw: { d: "grupo\tnota\nA\t7\nA\t8\nA\t6\nA\t7\nB\t5\nB\t6\nB\t5\nB\t4", v: { num: "nota", group: "grupo" } },
+  wilcoxon: { d: "pre\tpos\n5\t7\n6\t8\n4\t6\n5\t7\n6\t7\n4\t6", v: { num: "pre", num2: "pos" } },
+  chi2: { d: "sexo\tprefere\nM\tsim\nM\tsim\nM\tnao\nF\tnao\nF\tnao\nF\tsim\nM\tsim\nF\tnao", v: { cat1: "sexo", cat2: "prefere" } },
+  fisher: { d: "grupo\tcurou\nA\tsim\nA\tsim\nA\tnao\nB\tnao\nB\tnao\nB\tsim", v: { cat1: "grupo", cat2: "curou" } },
+  median: { d: "metodo\tnota\nA\t6\nA\t7\nA\t6\nB\t7\nB\t8\nB\t7\nC\t5\nC\t6\nC\t5", v: { num: "nota", group: "metodo" } },
+  ks2: { d: "grupo\tnota\nA\t7\nA\t8\nA\t6\nA\t7\nB\t5\nB\t6\nB\t5\nB\t4", v: { num: "nota", group: "grupo" } },
+  ww2: { d: "grupo\tnota\nA\t7\nA\t8\nA\t6\nA\t7\nB\t5\nB\t6\nB\t5\nB\t4", v: { num: "nota", group: "grupo" } },
+  runs: { d: "valor\n2\n8\n3\n7\n2\n9\n3\n8\n2\n7", v: { num: "valor" } },
+  moses: { d: "grupo\tvalor\nC\t5\nC\t6\nC\t7\nC\t8\nE\t1\nE\t2\nE\t10\nE\t11", v: { num: "valor", group: "grupo" }, h: "0" },
+};
+
 // grade (planilha) editável -> dataset; e texto colado -> grade
 function emptyGrid(cols = 2, rows = 6) {
   return { headers: Array.from({ length: cols }, (_, i) => "var" + (i + 1)), rows: Array.from({ length: rows }, () => Array.from({ length: cols }, () => "")) };
@@ -290,6 +336,7 @@ function AnaliseQuantitativa({ active = true }) {
   const [showPaste, setShowPaste] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [result, setResult] = useState(null);
+  const [pendingCalc, setPendingCalc] = useState(false);
   const resultRef = useRef(null);
 
   const exportPDF = () => {
@@ -412,6 +459,20 @@ function AnaliseQuantitativa({ active = true }) {
     } catch (e) { setErr(e.message || "Erro no cálculo."); setResult(null); }
   };
 
+  // carrega o exemplo do teste atual (preenche a grade, seleciona as variáveis e calcula)
+  const carregarExemploTeste = () => {
+    const ex = EX[testKey]; if (!ex) return;
+    setErr(""); setGrid(textToGrid(ex.d)); setVars(ex.v || {});
+    if (ex.mu0 != null) setMu0(ex.mu0);
+    if (ex.h != null) setHMoses(ex.h);
+    setResult(null); setPendingCalc(true);
+  };
+  // quando o exemplo termina de carregar (grade + variáveis prontas), calcula sozinho
+  useEffect(() => {
+    if (!pendingCalc || !data) return;
+    calcular(); setPendingCalc(false);
+  }, [pendingCalc, data, vars]);
+
   // ---------- seletores de variáveis por tipo ----------
   const toggleItem = (h, checked) => setVars((s) => ({ ...s, items: checked ? [...(s.items || []), h] : (s.items || []).filter((x) => x !== h) }));
 
@@ -507,7 +568,8 @@ function AnaliseQuantitativa({ active = true }) {
               <button onClick={() => setShowFormula((v) => !v)} style={{ background: "none", border: "none", color: "#1f7a8c", fontSize: 12, cursor: "pointer", padding: 0, fontWeight: 600 }}>ƒ Fórmula e referência {showFormula ? "▾" : "▸"}</button>
               {showFormula && (
                 <div style={{ marginTop: 6, background: "#f7f9fb", border: "1px solid #e3e9ee", borderRadius: 6, padding: "8px 10px" }}>
-                  <div style={{ fontSize: 12.5, color: "#46555f", lineHeight: 1.5, marginBottom: 8, textAlign: "justify" }}>{INFO[testKey].e}</div>
+                  <div style={{ fontSize: 12.5, color: "#46555f", lineHeight: 1.5, marginBottom: 6, textAlign: "justify" }}>{INFO[testKey].e}</div>
+                  {WHEN[testKey] && <div style={{ fontSize: 12.5, color: "#34495e", lineHeight: 1.5, marginBottom: 8 }}><b>Quando usar:</b> {WHEN[testKey]}</div>}
                   <div style={{ background: "#fff", border: "1px solid #eef1f4", borderRadius: 4, padding: "8px 10px", overflowX: "auto" }}>
                     {INFO[testKey].f.map((m, i) => (<div key={i} style={{ fontSize: 18, margin: "6px 0", color: "#2b3a48" }} dangerouslySetInnerHTML={{ __html: m }} />))}
                   </div>
@@ -517,7 +579,8 @@ function AnaliseQuantitativa({ active = true }) {
               )}
             </div>
           )}
-          {!data ? <div style={{ fontSize: 12.5, color: "#9aa7b2", marginTop: 12 }}>Preencha os dados na grade ao lado para escolher as variáveis.</div> : (
+          {EX[testKey] && <button onClick={carregarExemploTeste} style={{ ...T.btn, marginTop: 10 }} title="preenche a grade com um exemplo e calcula">↻ Carregar exemplo deste teste</button>}
+          {!data ? <div style={{ fontSize: 12.5, color: "#9aa7b2", marginTop: 12 }}>Preencha os dados na grade ao lado (ou carregue um exemplo) para escolher as variáveis.</div> : (
             <div>
               {renderPickers()}
               <button style={{ ...T.prim, marginTop: 14 }} onClick={calcular}>Calcular</button>
